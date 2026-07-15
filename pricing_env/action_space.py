@@ -17,13 +17,13 @@ each reimplementing (and potentially drifting from) the same formula.
 
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Any, Sequence
 
 import numpy as np
 from gymnasium import spaces
 
 
-def build_action_space(config: "Any") -> spaces.Discrete:  # noqa: F821
+def build_action_space(config: Any) -> spaces.Discrete:
     """
     Build the discrete action space from the configured price adjustments.
 
