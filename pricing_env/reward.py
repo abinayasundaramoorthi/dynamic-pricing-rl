@@ -1,4 +1,20 @@
 """
+Reward function for Dynamic Pricing Environment.
+"""
+
+MIN_PRICE = 100
+MAX_PRICE = 1000
+
+
+def calculate_reward(
+    price,
+    units_sold,
+    remaining_inventory,
+    remaining_days,
+    season_over=False,
+):
+    """
+    Calculate reward for one pricing step.
 reward.py
 
 This module contains the reward calculation logic for the
@@ -126,6 +142,35 @@ def compute_reward(
     Parameters
     ----------
     price : float
+    units_sold : int
+    remaining_inventory : int
+    remaining_days : int
+    season_over : bool
+
+    Returns
+    -------
+    float
+    """
+https://github.com/abinayasundaramoorthi/dynamic-pricing-rl/pull/56/conflict?name=pricing_env%252Freward.py&base_oid=7cc093e56a2eceec9e7e3b56e7c6340ba3491a6a&head_oid=ba1f7c8d6ebe37af3dc1b87045c834d6356e3655
+    reward = 0.0
+
+    # Revenue
+    revenue = price * units_sold
+    reward += revenue
+
+    # Overstock penalty
+    if season_over and remaining_inventory > 0:
+        reward -= remaining_inventory * 20
+
+    # Understock penalty
+    if remaining_inventory == 0 and remaining_days > 0:
+        reward -= remaining_days * 15
+
+    # Invalid pricing penalty
+    if price < MIN_PRICE or price > MAX_PRICE:
+        reward -= 100
+
+    return reward
         The price set by the agent for this time step.
     units_sold : int
         The number of units sold at this price during this time step.
