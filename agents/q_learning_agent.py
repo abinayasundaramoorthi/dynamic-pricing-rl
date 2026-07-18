@@ -8,18 +8,19 @@ table that stores a "quality score" (Q-value) for every (state, action)
 combination it has seen. Over time, through trial and error, it learns
 which price (action) is best for each situation (state).
 
-This version is built to work with the team's Gymnasium-style
-PricingEnvironment (pricing_env.py), which follows the standard
-Gymnasium API:
+Built to work with the team's Gymnasium-style PricingEnvironment
+(pricing_env.py):
   - env.reset(seed=...) returns (observation, info)
   - env.step(action) returns (observation, reward, terminated, truncated, info)
   - env.action_space.n gives the number of discrete actions
 
-This version also adds:
+Features:
   - Configurable epsilon decay strategy
   - Policy extraction (turning the Q-table into a clear "best action per state" policy)
   - Saving/loading the learned Q-table (so training progress isn't lost)
   - Performance tracking (so we can plot how the agent improved over time)
+  - evaluate(): test a trained agent's real performance with NO exploration,
+    used for comparing different hyperparameter settings fairly (Issue #47)
 """
 
 import random
@@ -48,18 +49,22 @@ class QLearningAgent:
         self.episode_lengths = []
 
     def _discretize_state(self, observation):
-        """
-        Convert the environment's observation (a NumPy array of floats,
-        e.g. [inventory, days_remaining]) into a clean integer tuple that
-        can be used as a Q-table dictionary key.
-        """
+        """Convert a NumPy observation into a clean integer tuple for the Q-table."""
         return tuple(int(round(x)) for x in observation)
 
-    def choose_action(self, observation):
-        """Choose an action using the epsilon-greedy strategy."""
+    def choose_action(self, observation, greedy=False):
+        """
+        Choose an action using the epsilon-greedy strategy.
+
+        Parameters
+        ----------
+        greedy : bool
+            If True, always pick the best known action (no random exploration).
+            Used during evaluate() to test the agent's learned policy honestly.
+        """
         state = self._discretize_state(observation)
 
-        if random.random() < self.epsilon:
+        if (not greedy) and random.random() < self.epsilon:
             action = random.randint(0, self.num_actions - 1)
         else:
             action = int(np.argmax(self.q_table[state]))
@@ -89,10 +94,7 @@ class QLearningAgent:
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
     def extract_policy(self):
-        """
-        Convert the learned Q-table into a simple policy: for every state
-        the agent has seen, what is the single best action to take?
-        """
+        """Convert the learned Q-table into a simple state -> best action policy."""
         policy = {}
         for state, q_values in self.q_table.items():
             policy[state] = int(np.argmax(q_values))
@@ -130,10 +132,7 @@ class QLearningAgent:
         print(f"Loaded {len(self.q_table)} learned states.")
 
     def train(self, env, num_episodes=1000, verbose=True):
-        """
-        Train the agent by running it through many episodes in the given
-        Gymnasium-style environment.
-        """
+        """Train the agent by running it through many episodes."""
         for episode in range(1, num_episodes + 1):
             observation, info = env.reset()
             done = False
@@ -164,6 +163,64 @@ class QLearningAgent:
                       f"Epsilon: {self.epsilon:.3f}")
 
         return self.episode_rewards
+
+    def evaluate(self, env, num_episodes=100):
+        """
+        Test the agent's learned policy with NO exploration (pure greedy
+        actions), so we get an honest measure of how good the agent
+        actually is — used to fairly compare different hyperparameter
+        settings against each other (Issue #47).
+
+        Parameters
+        ----------
+        env : PricingEnvironment
+        num_episodes : int
+            Number of episodes to evaluate over.
+
+        Returns
+        -------
+        metrics : dict
+            avg_reward, avg_revenue, avg_inventory_utilization (0 to 1,
+            fraction of starting inventory actually sold).
+        """
+        total_rewards = []
+        total_revenues = []
+        utilizations = []
+
+        for _ in range(num_episodes):
+            observation, info = env.reset()
+            done = False
+            episode_reward = 0
+            episode_revenue = 0
+
+            initial_inventory = env.config.initial_inventory
+
+            while not done:
+                action = self.choose_action(observation, greedy=True)
+                next_observation, reward, terminated, truncated, info = env.step(action)
+                done = terminated or truncated
+
+                episode_reward += reward
+                # Pull actual revenue out of the reward breakdown, since
+                # `reward` itself includes penalties/bonuses, not pure revenue.
+                episode_revenue += info["reward_breakdown"]["revenue"]
+
+                observation = next_observation
+
+            # Inventory utilization: fraction of starting inventory actually sold
+            remaining_inventory = observation[0]
+            utilization = 1.0 - (remaining_inventory / initial_inventory)
+
+            total_rewards.append(episode_reward)
+            total_revenues.append(episode_revenue)
+            utilizations.append(utilization)
+
+        metrics = {
+            "avg_reward": float(np.mean(total_rewards)),
+            "avg_revenue": float(np.mean(total_revenues)),
+            "avg_inventory_utilization": float(np.mean(utilizations)),
+        }
+        return metrics
 
     def get_performance_summary(self):
         """Return a simple summary of training performance so far."""
@@ -210,3 +267,7 @@ if __name__ == "__main__":
     test_observation = np.array([50, 15], dtype=np.float32)
     action = new_agent.choose_action(test_observation)
     print(f"\nAction chosen by loaded agent for state {test_observation}: {action}")
+
+    print("\nEvaluating trained agent...")
+    eval_metrics = agent.evaluate(env, num_episodes=100)
+    print("Evaluation metrics:", eval_metrics)
