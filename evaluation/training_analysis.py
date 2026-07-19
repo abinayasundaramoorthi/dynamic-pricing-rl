@@ -222,3 +222,8 @@ if __name__ == "__main__":
     analyzer.print_summary()
 
     analyzer.generate_graphs()
+
+
+    import matplotlib.pyplot as plt
+
+
