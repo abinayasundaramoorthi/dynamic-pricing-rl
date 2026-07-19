@@ -22,6 +22,8 @@ from pricing_env import PricingEnvConfig
 from pricing_env.demand_simulator import DemandConfig
 from pricing_env.reward import RewardConfig
 
+_ALLOWED_AGENT_TYPES = {"random", "q_learning"}
+
 
 @dataclass(frozen=True)
 class TrainingConfig:
@@ -82,11 +84,16 @@ class TrainingConfig:
         train_agent.py itself). Must be in (0, 1].
     checkpoint_dir : str
         Where a learning agent should save trained weights/Q-tables.
-        Unused by the current placeholder loop (there is nothing trainable
-        to checkpoint yet) — defined now so the training loop only needs a
-        few added lines, not a reshaped config, once a real agent lands.
+        Unused when `agent_type == "random"` — there is nothing trainable
+        to checkpoint.
     results_dir : str
         Where evaluation results/plots should be written (Week 4).
+    agent_type : str
+        Which agent to train: "random" (Day 1 placeholder — no learning)
+        or "q_learning" (tabular Q-Learning, agents/q_learning.py).
+    num_eval_episodes : int
+        Episodes to run, with exploration disabled, when evaluating a
+        trained policy after training completes. Must be > 0.
     """
 
     env_config: PricingEnvConfig = field(default_factory=PricingEnvConfig)
@@ -105,10 +112,22 @@ class TrainingConfig:
     checkpoint_dir: str = "agents/checkpoints"
     results_dir: str = "evaluation/results"
 
+    agent_type: str = "random"
+    num_eval_episodes: int = 100
+
     def __post_init__(self) -> None:
         if not isinstance(self.env_config, PricingEnvConfig):
             raise TypeError(
                 f"env_config must be a PricingEnvConfig instance, got {type(self.env_config)}"
+            )
+        if self.agent_type not in _ALLOWED_AGENT_TYPES:
+            raise ValueError(
+                f"agent_type must be one of {sorted(_ALLOWED_AGENT_TYPES)}, "
+                f"got {self.agent_type!r}"
+            )
+        if self.num_eval_episodes <= 0:
+            raise ValueError(
+                f"num_eval_episodes must be > 0, got {self.num_eval_episodes}"
             )
         if self.num_episodes <= 0:
             raise ValueError(f"num_episodes must be > 0, got {self.num_episodes}")
@@ -164,4 +183,53 @@ def get_default_training_config() -> TrainingConfig:
             demand=DemandConfig(),
             reward=RewardConfig(),
         )
+    )
+
+
+def get_final_training_config() -> TrainingConfig:
+    """
+    "Final" training configuration: trains a real tabular Q-Learning agent
+    (`agent_type="q_learning"`), rather than the Day 1 random-policy
+    placeholder `get_default_training_config()` still returns.
+
+    IMPORTANT CAVEAT ON "optimized" — read before treating these numbers
+    as tuned:
+    The Week 2 experiment suite (`training/run_experiment.py`) was run
+    before any trainable agent existed: every experiment in that suite
+    used the same random-action placeholder policy (see that script's
+    module docstring), so its results cannot honestly be described as an
+    empirical hyperparameter comparison — there was no learning for any
+    hyperparameter to affect. The values below are reasonable,
+    literature-informed defaults for tabular Q-Learning on a small
+    (~3,000-state) discrete MDP, not the output of a real tuning sweep:
+
+      - learning_rate=0.1, discount_factor=0.99: standard tabular
+        Q-Learning starting points (Sutton & Barto).
+      - num_episodes=5000: enough for ~7 visits per (state, action) pair
+        on average across the ~3,131 reachable (inventory, days) states x
+        7 actions — a reasonable floor for a tabular method, not a
+        convergence guarantee.
+      - exploration_decay=0.9994: chosen so exploration_rate decays from
+        1.0 to roughly exploration_min (0.05) by episode 5000.
+
+    Re-running `run_experiment.py`'s suite now that `agent_type="q_learning"`
+    actually produces different behavior per configuration — i.e. a real
+    hyperparameter comparison — is necessary follow-up work, not yet done.
+    """
+    return TrainingConfig(
+        env_config=PricingEnvConfig(
+            initial_inventory=100,
+            selling_horizon_days=30,
+            base_price=200.0,
+            demand=DemandConfig(),
+            reward=RewardConfig(),
+        ),
+        agent_type="q_learning",
+        num_episodes=5000,
+        learning_rate=0.1,
+        discount_factor=0.99,
+        exploration_rate=1.0,
+        exploration_min=0.05,
+        exploration_decay=0.9994,
+        num_eval_episodes=200,
     )
