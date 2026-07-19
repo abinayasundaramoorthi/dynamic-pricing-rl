@@ -14,19 +14,26 @@ Built to work with the team's Gymnasium-style PricingEnvironment
   - env.step(action) returns (observation, reward, terminated, truncated, info)
   - env.action_space.n gives the number of discrete actions
 
+HYPERPARAMETERS (Issue #59):
+Default values below reflect the tuned configuration identified through
+systematic testing in Issue #47 and re-confirmed in Issue #59:
+  - learning_rate (alpha)  = 0.1   (unchanged from initial baseline — already optimal)
+  - discount_factor (gamma) = 0.95 (unchanged — agent values long-term revenue appropriately)
+  - epsilon_decay = 0.999  (slower decay than the original 0.995 default —
+    gives the agent more episodes of exploration before committing to a
+    policy, which produced the highest average reward across all tested
+    configurations. See reports/q_learning_optimization.md for full
+    before/after comparison and reasoning.)
+  - exploration_strategy = "epsilon_greedy" (plain epsilon-greedy — Issue
+    #51 found this outperformed the Boltzmann/warm-up alternative on this
+    environment, so it remains the default.)
+
 Features:
   - Policy extraction, save/load, performance tracking
   - evaluate(): honest, no-exploration performance testing
-  - IMPROVED EXPLORATION (Issue #51):
-      * Exploration warm-up period — epsilon stays high for a fixed
-        number of episodes before decay begins, so the agent gathers
-        broad experience before starting to commit to a strategy
-        (avoids getting stuck in a poor "local" pricing habit too early).
-      * Boltzmann (softmax) action selection as an alternative to plain
-        uniform-random exploration — when exploring, the agent still
-        leans toward actions with higher known Q-values instead of
-        wasting exploration on actions it already has strong evidence
-        are bad (e.g. absurdly low or high prices).
+  - Improved exploration options (Boltzmann + warm-up) available via
+    exploration_strategy parameter, though epsilon_greedy remains the
+    recommended default (see Issue #51 findings).
 """
 
 import random
@@ -36,10 +43,10 @@ from collections import defaultdict
 
 
 class QLearningAgent:
-    """A tabular Q-Learning agent with policy management and improved exploration."""
+    """A tabular Q-Learning agent with tuned defaults, policy management, and exploration options."""
 
     def __init__(self, num_actions, learning_rate=0.1, discount_factor=0.95,
-                 epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.01,
+                 epsilon=1.0, epsilon_decay=0.999, epsilon_min=0.01,
                  exploration_strategy="epsilon_greedy", warmup_episodes=0,
                  temperature=1.0, temperature_decay=0.995, temperature_min=0.05):
         """
@@ -48,33 +55,21 @@ class QLearningAgent:
         num_actions : int
             Number of possible actions (price levels). Get from env.action_space.n
         learning_rate : float (alpha)
+            Tuned default: 0.1
         discount_factor : float (gamma)
+            Tuned default: 0.95
         epsilon : float
-            Starting exploration probability.
+            Starting exploration probability. Default: 1.0
         epsilon_decay : float
-            Multiplicative decay applied each episode, once warm-up ends.
+            Tuned default: 0.999 (slower decay — see module docstring)
         epsilon_min : float
-            Floor for epsilon — always keeps a little exploration.
+            Floor for epsilon.
         exploration_strategy : str
-            "epsilon_greedy"          -> original: explore = pick a fully random action
-            "boltzmann_epsilon_greedy" -> improved: explore = pick an action using
-                                           softmax over current Q-values, so
-                                           exploration still favors more promising
-                                           actions instead of being fully blind.
+            "epsilon_greedy" (recommended default) or "boltzmann_epsilon_greedy"
         warmup_episodes : int
-            Number of episodes to hold epsilon at its starting value before
-            decay begins (exploration scheduling). 0 disables warm-up
-            (original behavior — decay starts immediately).
-        temperature : float
-            Starting softmax temperature for Boltzmann exploration. Higher
-            temperature = closer to uniform random; lower = more strongly
-            favors the best-known action. Only used when
-            exploration_strategy="boltzmann_epsilon_greedy".
-        temperature_decay : float
-            Multiplicative decay applied to temperature each episode
-            (after warm-up), same idea as epsilon_decay.
-        temperature_min : float
-            Floor for temperature.
+            Episodes to hold epsilon at start value before decay begins.
+        temperature, temperature_decay, temperature_min : float
+            Only used when exploration_strategy="boltzmann_epsilon_greedy".
         """
         self.num_actions = num_actions
         self.alpha = learning_rate
@@ -104,34 +99,17 @@ class QLearningAgent:
         """Convert a NumPy observation into a clean integer tuple for the Q-table."""
         return tuple(int(round(x)) for x in observation)
 
-    # ------------------------------------------------------------
-    # ACTION SELECTION
-    # ------------------------------------------------------------
     def _softmax_action(self, q_values):
-        """
-        Pick an action using Boltzmann (softmax) exploration: actions
-        with higher Q-values are more likely to be picked, but it's
-        still probabilistic (not purely greedy), so the agent keeps
-        exploring — just more intelligently than pure random choice.
-        """
-        temperature = max(self.temperature, 1e-6)  # avoid divide-by-zero
+        """Boltzmann exploration: favors higher Q-value actions while still exploring."""
+        temperature = max(self.temperature, 1e-6)
         scaled = q_values / temperature
-        scaled = scaled - np.max(scaled)  # numerical stability
+        scaled = scaled - np.max(scaled)
         exp_values = np.exp(scaled)
         probabilities = exp_values / np.sum(exp_values)
         return int(np.random.choice(self.num_actions, p=probabilities))
 
     def choose_action(self, observation, greedy=False):
-        """
-        Choose an action.
-
-        Parameters
-        ----------
-        greedy : bool
-            If True, always pick the best known action (no exploration at
-            all) — used by evaluate() to test the agent's learned policy
-            honestly, regardless of exploration_strategy.
-        """
+        """Choose an action. greedy=True disables all exploration (used by evaluate())."""
         state = self._discretize_state(observation)
         q_values = self.q_table[state]
 
@@ -143,16 +121,11 @@ class QLearningAgent:
         if not explore:
             return int(np.argmax(q_values))
 
-        # --- Exploring: HOW we explore depends on the strategy ---
         if self.exploration_strategy == "boltzmann_epsilon_greedy":
             return self._softmax_action(q_values)
         else:
-            # original strategy: fully random action
             return random.randint(0, self.num_actions - 1)
 
-    # ------------------------------------------------------------
-    # Q-VALUE UPDATE
-    # ------------------------------------------------------------
     def update(self, observation, action, reward, next_observation, done):
         """
         Q(s,a) = Q(s,a) + alpha * [reward + gamma * max(Q(s',a')) - Q(s,a)]
@@ -170,25 +143,12 @@ class QLearningAgent:
 
         self.q_table[state][action] = current_q + self.alpha * (target - current_q)
 
-    # ------------------------------------------------------------
-    # EXPLORATION SCHEDULING (warm-up + decay)
-    # ------------------------------------------------------------
     def decay_epsilon(self):
-        """
-        Reduce epsilon (and temperature, if using Boltzmann exploration)
-        after each episode.
-
-        If warmup_episodes > 0, epsilon (and temperature) stay at their
-        starting values for that many episodes first — giving the agent
-        a guaranteed period of broad exploration before it starts
-        narrowing down, which helps avoid settling into a poor "local"
-        pricing habit too early, before it has seen enough of the
-        situation space.
-        """
+        """Reduce epsilon (and temperature, if applicable) after each episode, respecting warm-up."""
         self._episodes_seen += 1
 
         if self._episodes_seen <= self.warmup_episodes:
-            return  # still in warm-up — don't decay yet
+            return
 
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
@@ -197,9 +157,6 @@ class QLearningAgent:
                 self.temperature_min, self.temperature * self.temperature_decay
             )
 
-    # ------------------------------------------------------------
-    # POLICY EXTRACTION
-    # ------------------------------------------------------------
     def extract_policy(self):
         """Convert the learned Q-table into a simple state -> best action policy."""
         policy = {}
@@ -207,9 +164,6 @@ class QLearningAgent:
             policy[state] = int(np.argmax(q_values))
         return policy
 
-    # ------------------------------------------------------------
-    # SAVE / LOAD Q-TABLE
-    # ------------------------------------------------------------
     def save_policy(self, filepath="agents/saved_policy.pkl"):
         """Save the learned Q-table (and key agent settings) to disk."""
         data_to_save = {
@@ -241,9 +195,6 @@ class QLearningAgent:
         print(f"Policy loaded from {filepath}")
         print(f"Loaded {len(self.q_table)} learned states.")
 
-    # ------------------------------------------------------------
-    # LEARNING LOOP
-    # ------------------------------------------------------------
     def train(self, env, num_episodes=1000, verbose=True):
         """Train the agent by running it through many episodes."""
         for episode in range(1, num_episodes + 1):
@@ -277,18 +228,10 @@ class QLearningAgent:
 
         return self.episode_rewards
 
-    # ------------------------------------------------------------
-    # EVALUATION (no exploration — honest performance test)
-    # ------------------------------------------------------------
     def evaluate(self, env, num_episodes=100):
         """
         Test the agent's learned policy with NO exploration (pure greedy
         actions), for fair comparison between agents/configurations.
-
-        Returns
-        -------
-        metrics : dict
-            avg_reward, avg_revenue, avg_inventory_utilization
         """
         total_rewards = []
         total_revenues = []
@@ -352,19 +295,12 @@ if __name__ == "__main__":
 
     env = PricingEnvironment(PricingEnvConfig())
 
-    print("Training IMPROVED exploration agent (Boltzmann + warm-up)...")
-    agent = QLearningAgent(
-        num_actions=env.action_space.n,
-        exploration_strategy="boltzmann_epsilon_greedy",
-        warmup_episodes=200,
-    )
+    print("Training agent with TUNED default hyperparameters...")
+    agent = QLearningAgent(num_actions=env.action_space.n)  # uses tuned defaults
     agent.train(env, num_episodes=1000)
 
     print("\nTraining complete!")
     print("Performance summary:", agent.get_performance_summary())
-
-    policy = agent.extract_policy()
-    print(f"\nExtracted policy covers {len(policy)} states.")
 
     agent.save_policy("agents/saved_policy.pkl")
 
