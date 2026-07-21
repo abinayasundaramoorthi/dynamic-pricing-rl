@@ -17,18 +17,6 @@ def calculate_reward(
     Calculate reward for one pricing step.
 reward.py
 
-This module contains the reward calculation logic for the
-Dynamic Pricing Reinforcement Learning environment.
-
-The reward tells the RL agent how "good" or "bad" its pricing
-decision was at each step. The agent uses this feedback to
-learn the best pricing policy over time.
-"""
-
-
-def calculate_reward(price, units_sold, inventory_left):
-    """
-    Calculate the reward for a single pricing decision.
 Implements the reward function defined in the project design document
 (Section 13 — Reward Design):
 
