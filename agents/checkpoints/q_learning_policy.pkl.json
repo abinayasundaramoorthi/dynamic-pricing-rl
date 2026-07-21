@@ -1,0 +1,8 @@
+{
+  "num_states_visited": 1797,
+  "num_actions": 7,
+  "learning_rate": 0.1,
+  "discount_factor": 0.99,
+  "final_exploration_rate": 0.740751523363002,
+  "saved_at_utc": "2026-07-19T06:25:18.552405+00:00"
+}
