@@ -1,4 +1,20 @@
 """
+Reward function for Dynamic Pricing Environment.
+"""
+
+MIN_PRICE = 100
+MAX_PRICE = 1000
+
+
+def calculate_reward(
+    price,
+    units_sold,
+    remaining_inventory,
+    remaining_days,
+    season_over=False,
+):
+    """
+    Calculate reward for one pricing step.
 reward.py
 
 Implements the reward function defined in the project design document
@@ -114,6 +130,100 @@ def compute_reward(
     Parameters
     ----------
     price : float
+    units_sold : int
+    remaining_inventory : int
+    remaining_days : int
+    season_over : bool
+
+    Returns
+    -------
+    float
+    """
+https://github.com/abinayasundaramoorthi/dynamic-pricing-rl/pull/56/conflict?name=pricing_env%252Freward.py&base_oid=7cc093e56a2eceec9e7e3b56e7c6340ba3491a6a&head_oid=ba1f7c8d6ebe37af3dc1b87045c834d6356e3655
+    reward = 0.0
+
+    # Revenue
+    revenue = price * units_sold
+    reward += revenue
+
+    # Overstock penalty
+    if season_over and remaining_inventory > 0:
+        reward -= remaining_inventory * 20
+
+    # Understock penalty
+    if remaining_inventory == 0 and remaining_days > 0:
+        reward -= remaining_days * 15
+
+    # Invalid pricing penalty
+    if price < MIN_PRICE or price > MAX_PRICE:
+        reward -= 100
+
+    return reward
+        The price set by the agent for this time step.
+    units_sold : int
+        The number of units sold at this price during this time step.
+    inventory_left : int
+        The number of units remaining in inventory after this sale.
+        (Not used in the initial version, but kept as a parameter
+        so it's ready for future improvements — see notes below.)
+
+    Returns
+    -------
+    reward : float
+        The reward value for this step. In the initial version,
+        this is simply the revenue earned.
+    """
+
+    # ------------------------------------------------------------
+    # INITIAL REWARD LOGIC (Week 1 baseline)
+    # ------------------------------------------------------------
+    # The simplest possible reward: revenue earned in this step.
+    # Revenue = price * units_sold
+    #
+    # Example:
+    #   price = 400, units_sold = 5
+    #   revenue = 400 * 5 = 2000
+    #
+    # This encourages the agent to sell as many units as possible
+    # at as high a price as possible.
+    revenue = price * units_sold
+
+    reward = revenue
+
+    # ------------------------------------------------------------
+    # FUTURE IMPROVEMENTS (not implemented yet)
+    # ------------------------------------------------------------
+    # The reward function can be made smarter later by adding
+    # penalties or bonuses. Some ideas for future weeks:
+    #
+    # 1. Inventory Penalty:
+    #    If too much inventory is left near the end of the season,
+    #    subtract a penalty to discourage the agent from holding
+    #    prices too high for too long (unsold stock = lost value).
+    #
+    #    Example (not active yet):
+    #    if inventory_left > some_threshold and days_left < some_limit:
+    #        reward -= inventory_penalty_weight * inventory_left
+    #
+    # 2. Customer Satisfaction Penalty:
+    #    If prices change too frequently or spike suddenly, it could
+    #    hurt customer trust. A penalty could be added for large
+    #    price jumps between steps.
+    #
+    #    Example (not active yet):
+    #    reward -= satisfaction_penalty_weight * abs(price - previous_price)
+    #
+    # 3. Overbooking Risk Penalty:
+    #    If the agent sells too fast and risks running out of stock
+    #    before the season ends (missing potential future high-price
+    #    sales), a small penalty could balance this risk.
+    #
+    # These are intentionally left out for now to keep the first
+    # version simple. They can be added once the basic agent is
+    # working correctly with the simple revenue-based reward.
+    # ------------------------------------------------------------
+
+    return reward
         The price offered this step (post action-to-price conversion).
     base_price : float
         Reference price; used to normalize the discount and unsold

@@ -1,0 +1,3 @@
+agent_name,avg_episode_reward,std_episode_reward,avg_units_sold,avg_utilization_pct,sellout_rate_pct,early_season_avg_price,late_season_avg_price
+Random Policy,10439.25,1177.53,100.0,100.0,100.0,124.90625,125.5858310626703
+Q-Learning Policy,12920.15,749.67,100.0,100.0,100.0,122.34375,158.90742285237698
