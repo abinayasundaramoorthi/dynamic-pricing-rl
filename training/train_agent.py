@@ -3,6 +3,24 @@ train_agent.py
 
 Training entry point for the Travel & Hospitality Dynamic Pricing project.
 
+Scope of this deliverable (Week 2, Day 1 — "Integrate RL Training
+Pipeline", issue #38)
+--------------------------------------------------------------------------
+This script wires the training *pipeline* together: it loads a
+`TrainingConfig`, builds a `PricingEnvironment` from it, and verifies the
+environment is compatible with the training loop (Gymnasium API
+compliance + a clean `reset()`).
+
+It deliberately does NOT yet implement a trainable agent (tabular
+Q-Learning / DQN) — that is scoped as a separate, follow-on task, exactly
+the same way `pricing_env.py`'s Day 3 skeleton shipped `reset()`/`render()`
+with a placeholder `step()` before Day 4 filled in the real demand/reward
+logic (see Week1_report_Abinaya.md, Day 3). Following that precedent here:
+rather than silently faking a trained policy, the per-episode action is
+supplied by an explicit, swappable `policy_fn` that defaults to a random
+policy. This keeps the pipeline runnable end-to-end today, while making it
+unmistakable — in the code and in the logs — that no learning is happening
+yet. The next task drops a real agent in by replacing `policy_fn`.
 Scope of this deliverable
 --------------------------------------------------------------------------
 Week 2, Day 1 (issue #38 / #42) wired the training *pipeline* together:
@@ -41,6 +59,13 @@ from __future__ import annotations
 
 import argparse
 import logging
+from typing import Callable, Optional
+
+import gymnasium as gym
+import numpy as np
+from gymnasium.utils.env_checker import check_env
+
+from configs.training_config import TrainingConfig, get_default_training_config
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -151,6 +176,7 @@ def random_policy(observation: np.ndarray, env: PricingEnvironment) -> int:
 
 # --------------------------------------------------------------------------- #
 # Training loop
+# --------------------------------------------------------------------------- #
 def run_training(
     env: PricingEnvironment,
     config: TrainingConfig,
@@ -167,6 +193,22 @@ def run_training(
     config : TrainingConfig
         Supplies episode budget, the seed, and the per-episode step cap.
     policy_fn : PolicyFn, optional
+        Maps an observation to an action index. Defaults to
+        `random_policy` — see the module docstring for why. Replacing
+        this with a real agent's action-selection method (and adding the
+        corresponding learning update after each `step()`) is the entire
+        scope of the follow-on "implement Q-Learning agent" task; nothing
+        else in this loop should need to change.
+
+    Notes
+    -----
+    No agent weights/checkpoints are saved by this placeholder loop even
+    though `config.checkpoint_dir` is already defined — there is nothing
+    trainable to checkpoint yet. The config field exists now so the loop
+    below only needs a few added lines (not a reshaped config) once a real
+    agent lands.
+    """
+    if policy_fn is None:
         Maps an observation to an action index, with NO learning. Used
         only when `agent` is not given. Defaults to `random_policy`.
     agent : QLearningAgent, optional
@@ -195,6 +237,10 @@ def run_training(
         terminated = truncated = False
         episode_reward = 0.0
         steps = 0
+
+        while not (terminated or truncated):
+            action = policy_fn(observation)
+            observation, reward, terminated, truncated, info = env.step(action)
         info = {}
 
         while not (terminated or truncated):
@@ -219,6 +265,10 @@ def run_training(
                 # Defensive cap only — see TrainingConfig.max_steps_per_episode.
                 truncated = True
 
+        if episode % config.log_every_n_episodes == 0 or episode == 1:
+            logger.info(
+                "Episode %d/%d | steps=%d | episode_reward=%.2f | "
+                "final_revenue=$%.2f",
         if use_agent:
             agent.decay_exploration()
 
@@ -233,6 +283,7 @@ def run_training(
                 steps,
                 episode_reward,
                 info.get("episode_revenue", 0.0),
+            )
             ]
             if use_agent:
                 log_msg += " | exploration_rate=%.3f | states_visited=%d"
@@ -364,6 +415,8 @@ def main() -> None:
 
     args = parse_args()
 
+    config = get_default_training_config()
+    if args.episodes is not None or args.seed is not None:
     config = get_final_training_config()
     if args.episodes is not None or args.seed is not None or args.agent is not None:
         # TrainingConfig is frozen (immutable) by design — see its
@@ -376,6 +429,10 @@ def main() -> None:
             overrides["num_episodes"] = args.episodes
         if args.seed is not None:
             overrides["seed"] = args.seed
+        config = replace(config, **overrides)
+
+    logger.info(
+        "Loaded TrainingConfig | num_episodes=%d | seed=%d | lr=%.3f | gamma=%.3f",
         if args.agent is not None:
             overrides["agent_type"] = args.agent
         config = replace(config, **overrides)
@@ -397,6 +454,8 @@ def main() -> None:
     if not args.skip_verification:
         verify_environment_compatibility(env)
 
+    try:
+        run_training(env, config)
     agent = build_agent(config, env)
 
     try:
