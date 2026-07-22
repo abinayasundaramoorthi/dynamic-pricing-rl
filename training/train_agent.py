@@ -42,7 +42,7 @@ from __future__ import annotations
 import argparse
 import logging
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 from gymnasium.utils.env_checker import check_env
@@ -156,7 +156,8 @@ def run_training(
     config: TrainingConfig,
     policy_fn: Optional[PolicyFn] = None,
     agent: Optional[QLearningAgent] = None,
-) -> None:
+    collect_metrics: bool = False,
+) -> Optional[Tuple[List[float], List[float]]]:
     """
     Run the training loop for `config.num_episodes` episodes.
 
@@ -173,22 +174,37 @@ def run_training(
         If given, takes priority over `policy_fn`: the agent's
         `select_action()` chooses each action, `update()` is called after
         every step so it can learn from the transition, and
-        `decay_exploration()` is called once per completed episode. This
-        is the only change from the Day 1 placeholder loop — the loop
-        shape itself (reset -> step -> log) is unchanged, exactly as that
-        version's docstring anticipated.
+        `decay_exploration()` is called once per completed episode.
+    collect_metrics : bool
+        If True, record every episode's total reward and final revenue
+        and return them as `(episode_rewards, episode_revenues)` once
+        training completes. Default False (returns `None`) to keep the
+        common case — train and log, don't hold results in memory —
+        allocation-free. `training/run_experiment.py` uses
+        `collect_metrics=True` to run its experiment suite through this
+        exact function rather than duplicating the loop (Week 2 Day 5
+        refactor — see that module's docstring for the prior history).
+
+    Returns
+    -------
+    Optional[Tuple[List[float], List[float]]]
+        `(episode_rewards, episode_revenues)` if `collect_metrics=True`,
+        else `None`.
 
     Notes
     -----
     Policy saving is NOT done inside this function — `main()` calls
     `save_policy()` separately after `run_training()` returns. Keeping
     "run episodes" and "persist the result" as separate steps means this
-    function stays reusable by callers (like `run_experiment.py`'s own
-    episode loop, conceptually) that don't want every call to touch disk.
+    function stays reusable by callers that don't want every call to
+    touch disk.
     """
     use_agent = agent is not None
     if not use_agent and policy_fn is None:
         policy_fn = lambda obs: random_policy(obs, env)  # noqa: E731
+
+    episode_rewards: List[float] = []
+    episode_revenues: List[float] = []
 
     for episode in range(1, config.num_episodes + 1):
         observation, _info = env.reset(seed=config.seed + episode)
@@ -222,6 +238,10 @@ def run_training(
         if use_agent:
             agent.decay_exploration()
 
+        if collect_metrics:
+            episode_rewards.append(episode_reward)
+            episode_revenues.append(info.get("episode_revenue", 0.0))
+
         if episode % config.log_every_n_episodes == 0 or episode == 1:
             log_msg = (
                 "Episode %d/%d | steps=%d | episode_reward=%.2f | "
@@ -240,6 +260,10 @@ def run_training(
             logger.info(log_msg, *log_args)
 
     logger.info("Training loop complete: %d episodes run.", config.num_episodes)
+
+    if collect_metrics:
+        return episode_rewards, episode_revenues
+    return None
 
 
 # --------------------------------------------------------------------------- #

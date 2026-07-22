@@ -43,7 +43,7 @@ from configs.training_config import TrainingConfig
 from pricing_env import PricingEnvironment
 from training.train_agent import (
     build_environment,
-    random_policy,
+    run_training,
     verify_environment_compatibility,
 )
 
@@ -62,43 +62,19 @@ def _run_episodes(
     Execute `config.num_episodes` episodes, recording per-episode reward
     and revenue.
 
-    Deliberately NOT calling `training.train_agent.run_training()`
-    directly: that function logs progress but does not return per-episode
-    data, which is exactly what this script needs to persist and compare
-    across experiments. This loop is intentionally the same shape as
-    `run_training()` (same `random_policy` placeholder, same
-    `max_steps_per_episode` safety cap) — only the "collect and return"
-    behavior differs. A natural follow-on refactor would have
-    `run_training()` accept an optional metrics-collector callback so this
-    duplication goes away; not done here to avoid modifying already-shipped
-    Day 1 pipeline code (issue #42) as a side effect of this task.
+    Week 2 Day 5 refactor: this is now a thin wrapper around
+    `training.train_agent.run_training(collect_metrics=True)` instead of
+    duplicating its loop. Previously this function contained its own
+    copy of the episode loop (same shape as `run_training()`, same
+    `random_policy` fallback, same `max_steps_per_episode` cap) — that
+    duplication was flagged as follow-up work at the time (see the Day 4
+    version of this docstring) and is resolved here: `run_training()` now
+    accepts `collect_metrics=True` and returns exactly what this function
+    needs, so there is exactly one place the episode loop is implemented.
     """
-    episode_rewards: List[float] = []
-    episode_revenues: List[float] = []
-
-    for episode in range(1, config.num_episodes + 1):
-        observation, _info = env.reset(seed=config.seed + episode)
-        terminated = truncated = False
-        episode_reward = 0.0
-        steps = 0
-        info = {}
-
-        while not (terminated or truncated):
-            action = random_policy(observation, env)
-            observation, reward, terminated, truncated, info = env.step(action)
-            episode_reward += reward
-            steps += 1
-
-            if (
-                config.max_steps_per_episode is not None
-                and steps >= config.max_steps_per_episode
-            ):
-                truncated = True
-
-        episode_rewards.append(episode_reward)
-        episode_revenues.append(info.get("episode_revenue", 0.0))
-
-    return episode_rewards, episode_revenues
+    result = run_training(env, config, collect_metrics=True)
+    assert result is not None  # guaranteed by collect_metrics=True
+    return result
 
 
 def _summarize_and_persist(
