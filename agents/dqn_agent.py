@@ -1,592 +1,231 @@
 """
 dqn_agent.py
 
-DQN agent — wraps the QNetwork (dqn_network.py) and provides an interface
-for choosing actions based on the network's predicted Q-values.
+Full trainable DQN agent — ties together the three components built in
+previous issues:
+  - QNetwork (dqn_network.py, Issue #63): the neural network approximating Q-values
+  - ReplayBuffer (replay_buffer.py, Issue #71): stores and samples past experiences
+  - TargetNetworkManager (target_network.py, Issue #75): stabilizes training targets
 
-Scope of this file (Issue #63): initializing the network and getting
-Q-value predictions / choosing actions from it (forward pass only).
-Training the network (experience replay, target network, loss
-calculation, backpropagation) is intentionally NOT included here — that
-is the focus of a following issue, matching the project's Week 3 roadmap
-of first building the network (this issue), then training it.
+This combines them into a complete training loop, matching the standard
+DQN algorithm (Mnih et al., 2015):
+
+  1. Choose an action using epsilon-greedy over the ONLINE network's Q-values
+  2. Take the action, observe (reward, next_state, done)
+  3. Store the experience in the replay buffer
+  4. Sample a random mini-batch from the replay buffer
+  5. Compute the target: reward + gamma * max(TARGET network's Q-values for next_state)
+     (using 0 for the future term if the episode ended)
+  6. Compute the loss between the online network's predicted Q-value for
+     the action actually taken, and the target
+  7. Backpropagate and update the online network's weights
+  8. Periodically synchronize the target network to match the online network
 """
 
-import torch
-import numpy as np
-
-from .dqn_network import QNetwork
-Deep Q-Network agent for the pricing environment (Mnih et al., 2015,
-"Human-level control through deep reinforcement learning").
-
-Replaces the tabular Q-table (agents/q_learning.py) with a small
-feedforward neural network Q(s, a; theta), trained via two standard DQN
-stabilization mechanisms:
-
-  1. Experience replay: transitions are stored in a buffer and sampled in
-     random minibatches, breaking the strong temporal correlation between
-     consecutive environment steps that would otherwise destabilize SGD
-     (consecutive transitions from one episode are highly similar; a
-     network trained directly on them in sequence would overfit to
-     whatever part of the state space that episode happened to visit).
-  2. A separate target network Q(s, a; theta_target), synced periodically
-     from the online network, used to compute TD targets. Without this,
-     the network would be chasing a target that moves every single
-     gradient step (bootstrapping off itself), a well-documented source
-     of training divergence.
-
-Why DQN instead of the tabular Q-table now: the Week 2 tabular agent
-(agents/q_learning.py) works well because Phase 1's state space is tiny
-(~3,000 reachable (inventory, days) states) — that was an explicit,
-documented design choice, not an oversight. DQN is introduced here because
-the roadmap's Phase 2 extensions (competitor price, customer segment,
-seasonality — see the design doc) would make a tabular Q-table grow
-combinatorially large and eventually impossible to enumerate; a function
-approximator doesn't have that limitation.
-"""
-
-from __future__ import annotations
-
-import json
-import logging
-from collections import deque
-from dataclasses import dataclass
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Deque, List, Optional
-
+import random
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from gymnasium import spaces
+import torch.optim as optim
 
-logger = logging.getLogger(__name__)
-
-
-class QNetwork(nn.Module):
-    """
-    Feedforward MLP mapping a (normalized) state vector to one Q-value
-    per discrete action.
-
-    Kept intentionally small (default two hidden layers of 64 units):
-    this environment's observation is a 2-dimensional vector
-    (remaining_inventory, days_remaining), not an image or a
-    high-dimensional sensor reading. A larger network would only add
-    unnecessary variance to training without any representational
-    benefit — there simply isn't enough underlying structure in a
-    2-dimensional input to justify more capacity.
-    """
-
-    def __init__(
-        self, input_dim: int, num_actions: int, hidden_layer_sizes: List[int]
-    ) -> None:
-        super().__init__()
-        layers: List[nn.Module] = []
-        in_features = input_dim
-        for hidden_size in hidden_layer_sizes:
-            layers.append(nn.Linear(in_features, hidden_size))
-            layers.append(nn.ReLU())
-            in_features = hidden_size
-        layers.append(nn.Linear(in_features, num_actions))
-        self.network = nn.Sequential(*layers)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.network(x)
-
-
-@dataclass
-class Transition:
-    """One (s, a, r, s', done) transition stored in the replay buffer."""
-
-    state: np.ndarray
-    action: int
-    reward: float
-    next_state: np.ndarray
-    done: bool
-
-
-class ReplayBuffer:
-    """
-    Fixed-size circular buffer of transitions, sampled uniformly at random.
-
-    A `deque(maxlen=...)` automatically evicts the oldest transition once
-    full — the standard, simplest DQN replay strategy. Prioritized replay
-    (sampling transitions with larger TD-error more often) is a documented,
-    common extension, but adds real complexity (a sum-tree structure,
-    importance-sampling bias correction) that isn't justified yet for a
-    state space this small and low-dimensional.
-    """
-
-    def __init__(self, capacity: int, seed: int) -> None:
-        self._buffer: Deque[Transition] = deque(maxlen=capacity)
-        self._rng = np.random.default_rng(seed)
-
-    def push(self, transition: Transition) -> None:
-        self._buffer.append(transition)
-
-    def sample(self, batch_size: int) -> List[Transition]:
-        indices = self._rng.choice(len(self._buffer), size=batch_size, replace=False)
-        return [self._buffer[i] for i in indices]
-
-    def __len__(self) -> int:
-        return len(self._buffer)
+from .dqn_network import QNetwork
+from .replay_buffer import ReplayBuffer
+from .target_network import TargetNetworkManager
 
 
 class DQNAgent:
-    """
-    Wraps a QNetwork and provides a simple interface for getting
-    Q-value predictions and choosing actions — the DQN equivalent of
-    QLearningAgent's choose_action(), but backed by a neural network
-    instead of a Q-table.
-    """
+    """A full DQN agent: neural network + replay buffer + target network + training loop."""
 
-    def __init__(self, state_dim, action_dim, hidden_dim=128, device=None):
+    def __init__(self, state_dim, action_dim, hidden_dim=128,
+                 learning_rate=0.001, discount_factor=0.95,
+                 epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.01,
+                 buffer_capacity=10000, batch_size=64,
+                 target_update_frequency=500, device=None):
         """
         Parameters
         ----------
         state_dim : int
-            Number of values describing the state (e.g. 2 for
-            [inventory_remaining, days_remaining]).
         action_dim : int
-            Number of possible discrete actions (price levels).
-            Get this from env.action_space.n
         hidden_dim : int
-            Number of units in each hidden layer of the network.
-        device : str or torch.device, optional
-            "cpu" or "cuda". Defaults to GPU if available, otherwise CPU.
+        learning_rate : float
+            Step size for the Adam optimizer updating the online network.
+        discount_factor : float (gamma)
+        epsilon, epsilon_decay, epsilon_min : float
+            Same epsilon-greedy exploration scheme as QLearningAgent.
+        buffer_capacity : int
+            Max size of the replay buffer.
+        batch_size : int
+            Number of experiences sampled per training step.
+        target_update_frequency : int
+            Training steps between target network synchronizations.
+        device : str, optional
+            "cpu" or "cuda". Auto-detected if not given.
         """
         self.state_dim = state_dim
         self.action_dim = action_dim
+        self.gamma = discount_factor
+        self.epsilon = epsilon
+        self.epsilon_decay = epsilon_decay
+        self.epsilon_min = epsilon_min
+        self.batch_size = batch_size
 
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.q_network = QNetwork(
-            state_dim=state_dim, action_dim=action_dim, hidden_dim=hidden_dim
-        ).to(self.device)
+        self.q_network = QNetwork(state_dim, action_dim, hidden_dim).to(self.device)
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=learning_rate)
+        self.loss_fn = nn.MSELoss()
 
-    def get_q_values(self, observation):
-        """
-        Run a forward pass through the network to get predicted Q-values
-        for a given observation.
+        self.replay_buffer = ReplayBuffer(capacity=buffer_capacity)
+        self.target_manager = TargetNetworkManager(
+            self.q_network, update_frequency=target_update_frequency
+        )
 
-        Parameters
-        ----------
-        observation : array-like
-            The current state, e.g. [inventory_remaining, days_remaining]
-            (a NumPy array, list, or similar).
+        self.episode_rewards = []
+        self.epsilon_history = []
 
-        Returns
-        -------
-        q_values : numpy.ndarray
-            Predicted Q-value for each possible action.
-        """
+    def choose_action(self, observation, greedy=False):
+        """Epsilon-greedy action selection using the online network."""
+        if (not greedy) and random.random() < self.epsilon:
+            return random.randint(0, self.action_dim - 1)
+
         state_tensor = torch.tensor(
             np.array(observation), dtype=torch.float32, device=self.device
         )
-
-        # No gradient tracking needed here — this is just inference
-        # (getting a prediction), not a training step.
         with torch.no_grad():
             q_values = self.q_network(state_tensor)
+        return int(torch.argmax(q_values).item())
 
-        return q_values.cpu().numpy()
+    def _train_step(self):
+        """Perform one gradient descent update using a sampled mini-batch."""
+        if not self.replay_buffer.is_ready(self.batch_size):
+            return None  # not enough experiences yet
 
-    def choose_action(self, observation):
-        """
-        Choose the action with the highest predicted Q-value (greedy).
+        states, actions, rewards, next_states, dones = self.replay_buffer.sample(
+            self.batch_size
+        )
 
-        Note: this is purely greedy for now — epsilon-greedy exploration,
-        experience replay, and the training loop itself will be added in
-        the follow-up training issue.
+        states = torch.tensor(states, dtype=torch.float32, device=self.device)
+        actions = torch.tensor(actions, dtype=torch.int64, device=self.device)
+        rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device)
+        next_states = torch.tensor(next_states, dtype=torch.float32, device=self.device)
+        dones = torch.tensor(dones, dtype=torch.float32, device=self.device)
 
-        Parameters
-        ----------
-        observation : array-like
-            The current state.
+        # Current Q-value predictions for the actions actually taken
+        q_values = self.q_network(states)
+        predicted_q = q_values.gather(1, actions.unsqueeze(1)).squeeze(1)
 
-        Returns
-        -------
-        action : int
-            Index of the action with the highest predicted Q-value.
-        """
-        q_values = self.get_q_values(observation)
-        return int(np.argmax(q_values))
+        # Target: reward + gamma * max Q(next_state) from the TARGET network
+        # (not the online network -- this is the whole point of Issue #75).
+        # If the episode ended (done=1), there's no future reward to add.
+        target_q_values = self.target_manager.get_target_q_values(next_states)
+        max_next_q = torch.max(target_q_values, dim=1)[0]
+        target = rewards + self.gamma * max_next_q * (1 - dones)
+
+        loss = self.loss_fn(predicted_q, target.detach())
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        self.target_manager.step()  # may or may not trigger a sync this step
+
+        return loss.item()
+
+    def decay_epsilon(self):
+        self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+
+    def train(self, env, num_episodes=1000, verbose=True):
+        """Train the DQN agent for a number of episodes."""
+        for episode in range(1, num_episodes + 1):
+            observation, info = env.reset()
+            done = False
+            total_reward = 0
+
+            while not done:
+                action = self.choose_action(observation)
+                next_observation, reward, terminated, truncated, info = env.step(action)
+                done = terminated or truncated
+
+                self.replay_buffer.push(observation, action, reward, next_observation, done)
+                self._train_step()
+
+                observation = next_observation
+                total_reward += reward
+
+            self.decay_epsilon()
+            self.episode_rewards.append(total_reward)
+            self.epsilon_history.append(self.epsilon)
+
+            if verbose and episode % 100 == 0:
+                avg_reward = np.mean(self.episode_rewards[-100:])
+                print(f"Episode {episode}/{num_episodes} | "
+                      f"Avg reward (last 100): {avg_reward:.2f} | "
+                      f"Epsilon: {self.epsilon:.3f}")
+
+        return self.episode_rewards
+
+    def evaluate(self, env, num_episodes=100):
+        """Evaluate the trained agent with NO exploration (pure greedy)."""
+        total_rewards = []
+        total_revenues = []
+        utilizations = []
+
+        for _ in range(num_episodes):
+            observation, info = env.reset()
+            done = False
+            episode_reward = 0
+            episode_revenue = 0
+            initial_inventory = env.config.initial_inventory
+
+            while not done:
+                action = self.choose_action(observation, greedy=True)
+                next_observation, reward, terminated, truncated, info = env.step(action)
+                done = terminated or truncated
+
+                episode_reward += reward
+                episode_revenue += info["reward_breakdown"]["revenue"]
+                observation = next_observation
+
+            remaining_inventory = observation[0]
+            utilization = 1.0 - (remaining_inventory / initial_inventory)
+
+            total_rewards.append(episode_reward)
+            total_revenues.append(episode_revenue)
+            utilizations.append(utilization)
+
+        return {
+            "avg_reward": float(np.mean(total_rewards)),
+            "avg_revenue": float(np.mean(total_revenues)),
+            "avg_inventory_utilization": float(np.mean(utilizations)),
+        }
 
     def save_model(self, filepath="agents/dqn_model.pt"):
-        """Save the network's learned weights to disk."""
         torch.save(self.q_network.state_dict(), filepath)
         print(f"Model weights saved to {filepath}")
 
     def load_model(self, filepath="agents/dqn_model.pt"):
-        """Load previously saved network weights."""
-        self.q_network.load_state_dict(
-            torch.load(filepath, map_location=self.device)
-        )
+        self.q_network.load_state_dict(torch.load(filepath, map_location=self.device))
         self.q_network.eval()
         print(f"Model weights loaded from {filepath}")
 
 
 if __name__ == "__main__":
-    # Quick smoke test: confirm the agent initializes and can choose actions.
-    state_dim = 2
-    action_dim = 7
+    import sys
+    import os
 
-    agent = DQNAgent(state_dim=state_dim, action_dim=action_dim)
-    print(f"DQNAgent initialized on device: {agent.device}")
-    print(agent.q_network)
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-    sample_observation = [50.0, 15.0]
-    q_values = agent.get_q_values(sample_observation)
-    print(f"\nQ-values for state {sample_observation}: {q_values}")
+    from pricing_env.pricing_env import PricingEnvironment, PricingEnvConfig
 
-    action = agent.choose_action(sample_observation)
-    print(f"Chosen action (highest Q-value): {action}")
+    env = PricingEnvironment(PricingEnvConfig())
 
-    print("\nDQNAgent forward pass and action selection working correctly!")
-    Deep Q-Network agent.
+    agent = DQNAgent(state_dim=2, action_dim=env.action_space.n)
 
-    Exposes `select_action()` / `select_greedy_action()` /
-    `decay_exploration()` with the same names and meaning as
-    `agents/q_learning.py`'s `QLearningAgent`, so the two agents are easy
-    to compare conceptually. Learning itself works differently, though:
-    tabular Q-Learning updates immediately from a single transition
-    (`update()`); DQN instead accumulates transitions via `remember()` and
-    periodically trains on a *sampled minibatch* via `train_step()` — a
-    single transition alone isn't enough context for a stable gradient
-    step, which is precisely why DQN needs the replay buffer.
+    print("Training DQN agent...")
+    agent.train(env, num_episodes=500)
 
-    This is also why DQN is driven by its own dedicated training loop in
-    `training/train_dqn.py` rather than being wired into
-    `training.train_agent.build_agent()`: `train_agent.run_training()`'s
-    per-step `agent.update(transition)` contract was built for tabular
-    Q-Learning's single-transition update rule and doesn't fit DQN's
-    batch-based, warm-up-gated training step cleanly. See
-    `reports/dqn_architecture.md` for the full rationale.
-    """
+    print("\nEvaluating trained DQN agent...")
+    metrics = agent.evaluate(env, num_episodes=100)
+    print("Evaluation metrics:", metrics)
 
-    def __init__(
-        self,
-        observation_space: spaces.Box,
-        action_space: spaces.Discrete,
-        hidden_layer_sizes: List[int],
-        learning_rate: float,
-        discount_factor: float,
-        exploration_rate: float,
-        exploration_min: float,
-        exploration_decay: float,
-        batch_size: int,
-        replay_buffer_size: int,
-        min_replay_size_before_training: int,
-        target_update_frequency: int,
-        grad_clip_norm: Optional[float],
-        device: str,
-        seed: int,
-    ) -> None:
-        if not (0.0 < learning_rate <= 1.0):
-            raise ValueError(f"learning_rate must be in (0, 1], got {learning_rate}")
-        if not (0.0 <= discount_factor < 1.0):
-            raise ValueError(
-                f"discount_factor must be in [0, 1), got {discount_factor}"
-            )
-        if not (0.0 <= exploration_min <= exploration_rate <= 1.0):
-            raise ValueError(
-                "Require 0 <= exploration_min <= exploration_rate <= 1, got "
-                f"exploration_rate={exploration_rate}, exploration_min={exploration_min}"
-            )
-        if not (0.0 < exploration_decay <= 1.0):
-            raise ValueError(
-                f"exploration_decay must be in (0, 1], got {exploration_decay}"
-            )
-        if batch_size <= 0:
-            raise ValueError(f"batch_size must be > 0, got {batch_size}")
-        if min_replay_size_before_training < batch_size:
-            raise ValueError(
-                "min_replay_size_before_training must be >= batch_size, got "
-                f"{min_replay_size_before_training} < {batch_size}"
-            )
-
-        try:
-            self.device = torch.device(device)
-            if self.device.type == "cuda" and not torch.cuda.is_available():
-                raise RuntimeError(
-                    "device='cuda' requested but torch.cuda.is_available() "
-                    "is False on this machine. Use device='cpu', or run on "
-                    "a machine with a working CUDA installation."
-                )
-        except (RuntimeError, ValueError) as e:
-            if "cuda" in str(e).lower():
-                raise
-            raise ValueError(f"Invalid torch device {device!r}: {e}") from e
-
-        self.num_actions = int(action_space.n)
-        self.obs_low = torch.tensor(
-            observation_space.low, dtype=torch.float32, device=self.device
-        )
-        self.obs_high = torch.tensor(
-            observation_space.high, dtype=torch.float32, device=self.device
-        )
-        self.obs_shape = observation_space.shape
-
-        input_dim = int(np.prod(observation_space.shape))
-        self.hidden_layer_sizes = list(hidden_layer_sizes)
-        self.online_network = QNetwork(
-            input_dim, self.num_actions, self.hidden_layer_sizes
-        ).to(self.device)
-        self.target_network = QNetwork(
-            input_dim, self.num_actions, self.hidden_layer_sizes
-        ).to(self.device)
-        self.target_network.load_state_dict(self.online_network.state_dict())
-        self.target_network.eval()  # target net is never trained directly
-
-        self.learning_rate = learning_rate
-        self.optimizer = torch.optim.Adam(
-            self.online_network.parameters(), lr=learning_rate
-        )
-
-        self.replay_buffer = ReplayBuffer(replay_buffer_size, seed=seed)
-
-        self.discount_factor = discount_factor
-        self.exploration_rate = exploration_rate
-        self.exploration_min = exploration_min
-        self.exploration_decay = exploration_decay
-        self.batch_size = batch_size
-        self.min_replay_size_before_training = min_replay_size_before_training
-        self.target_update_frequency = target_update_frequency
-        self.grad_clip_norm = grad_clip_norm
-
-        self._rng = np.random.default_rng(seed)
-        self._gradient_step_count = 0
-
-    def _normalize(self, observation: np.ndarray) -> torch.Tensor:
-        """
-        Min-max normalize the observation to roughly [0, 1] before feeding
-        the network.
-
-        Neural networks trained with SGD are notoriously sensitive to
-        input scale: `remaining_inventory` can range up to hundreds while
-        `days_remaining` ranges up to tens, and without normalization the
-        larger-magnitude feature would dominate early gradients purely
-        due to scale, not genuine importance to the Q-value. This is
-        exactly the kind of practical engineering detail a tabular
-        Q-table never needed (each (inventory, days) pair was just a dict
-        key) — part of why DQN requires more careful setup than tabular
-        Q-Learning for the same underlying problem.
-        """
-        obs_t = torch.as_tensor(observation, dtype=torch.float32, device=self.device)
-        return (obs_t - self.obs_low) / (self.obs_high - self.obs_low + 1e-8)
-
-    def select_action(self, observation: np.ndarray) -> int:
-        """Epsilon-greedy action selection, matching QLearningAgent's
-        interface and semantics exactly."""
-        if self._rng.random() < self.exploration_rate:
-            return int(self._rng.integers(0, self.num_actions))
-        return self.select_greedy_action(observation)
-
-    def select_greedy_action(self, observation: np.ndarray) -> int:
-        """Act purely greedily (no exploration) — used for evaluation.
-        Wrapped in `torch.no_grad()` since action selection should never
-        build a backprop graph."""
-        with torch.no_grad():
-            state_t = self._normalize(observation).unsqueeze(0)
-            q_values = self.online_network(state_t)
-            return int(torch.argmax(q_values, dim=1).item())
-
-    def remember(
-        self,
-        observation: np.ndarray,
-        action: int,
-        reward: float,
-        next_observation: np.ndarray,
-        terminated: bool,
-    ) -> None:
-        """Store one transition in the replay buffer. `.copy()` on the
-        arrays guards against the caller's observation being mutated by
-        the environment on a later step before this transition is sampled
-        for training."""
-        self.replay_buffer.push(
-            Transition(
-                observation.copy(), action, reward, next_observation.copy(), terminated
-            )
-        )
-
-    def train_step(self) -> Optional[float]:
-        """
-        Sample a minibatch from replay and perform one gradient step.
-
-        Returns the scalar Huber loss for logging, or `None` if the
-        replay buffer doesn't yet hold at least
-        `min_replay_size_before_training` transitions — training on a
-        near-empty, low-diversity buffer early on is a well-documented
-        source of instability, so gradient steps are simply skipped
-        during this warm-up window rather than trained on an
-        unrepresentative sample.
-        """
-        if len(self.replay_buffer) < self.min_replay_size_before_training:
-            return None
-
-        batch = self.replay_buffer.sample(self.batch_size)
-        states = torch.stack([self._normalize(t.state) for t in batch])
-        actions = torch.tensor(
-            [t.action for t in batch], dtype=torch.int64, device=self.device
-        )
-        rewards = torch.tensor(
-            [t.reward for t in batch], dtype=torch.float32, device=self.device
-        )
-        next_states = torch.stack([self._normalize(t.next_state) for t in batch])
-        dones = torch.tensor(
-            [float(t.done) for t in batch], dtype=torch.float32, device=self.device
-        )
-
-        current_q = (
-            self.online_network(states).gather(1, actions.unsqueeze(1)).squeeze(1)
-        )
-
-        with torch.no_grad():
-            next_q_max = self.target_network(next_states).max(dim=1).values
-            td_target = rewards + self.discount_factor * next_q_max * (1.0 - dones)
-
-        # Huber loss (smooth L1), not MSE: more robust to the occasional
-        # large-magnitude TD error a squared loss would let dominate the
-        # gradient, given this environment's reward scale can vary
-        # substantially between a routine sale and a large terminal
-        # unsold-inventory penalty.
-        loss = F.smooth_l1_loss(current_q, td_target)
-
-        self.optimizer.zero_grad()
-        loss.backward()
-        if self.grad_clip_norm is not None:
-            torch.nn.utils.clip_grad_norm_(
-                self.online_network.parameters(), self.grad_clip_norm
-            )
-        self.optimizer.step()
-
-        self._gradient_step_count += 1
-        if self._gradient_step_count % self.target_update_frequency == 0:
-            self.target_network.load_state_dict(self.online_network.state_dict())
-            logger.debug(
-                "Synced target network at gradient step %d", self._gradient_step_count
-            )
-
-        return float(loss.item())
-
-    def decay_exploration(self) -> None:
-        """Multiplicatively decay exploration_rate, floored at
-        exploration_min. Called once per completed episode — identical
-        contract to QLearningAgent.decay_exploration()."""
-        self.exploration_rate = max(
-            self.exploration_min, self.exploration_rate * self.exploration_decay
-        )
-
-    def save(self, path: Path) -> None:
-        """
-        Persist the online network's weights and hyperparameters to disk.
-
-        Writes two files, mirroring `QLearningAgent.save()`'s pattern:
-          - `<path>` : torch state_dict + hyperparameters (torch.save),
-            for `load()` to reconstruct a working agent.
-          - `<path>.json` : a human-readable sidecar (architecture,
-            hyperparameters, timestamp) so a reviewer can sanity-check
-            what was trained without loading the torch checkpoint.
-
-        Only the ONLINE network's weights are saved, not the target
-        network's — the target network is purely a training-stability
-        device; at evaluation/deployment time only the online network's
-        learned Q-values matter.
-        """
-        path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-        payload = {
-            "online_state_dict": self.online_network.state_dict(),
-            "hidden_layer_sizes": self.hidden_layer_sizes,
-            "num_actions": self.num_actions,
-            "obs_shape": tuple(self.obs_shape),
-            "learning_rate": self.learning_rate,
-            "discount_factor": self.discount_factor,
-            "exploration_rate": self.exploration_rate,
-            "exploration_min": self.exploration_min,
-            "exploration_decay": self.exploration_decay,
-        }
-        torch.save(payload, path)
-
-        metadata = {
-            "hidden_layer_sizes": self.hidden_layer_sizes,
-            "num_actions": self.num_actions,
-            "learning_rate": self.learning_rate,
-            "discount_factor": self.discount_factor,
-            "final_exploration_rate": self.exploration_rate,
-            "gradient_steps_taken": self._gradient_step_count,
-            "replay_buffer_size_at_save": len(self.replay_buffer),
-            "saved_at_utc": datetime.now(timezone.utc).isoformat(),
-        }
-        with open(str(path) + ".json", "w") as f:
-            json.dump(metadata, f, indent=2)
-
-        logger.info(
-            "Saved DQN policy | gradient_steps=%d | path=%s",
-            self._gradient_step_count,
-            path,
-        )
-
-    @classmethod
-    def load(
-        cls,
-        path: Path,
-        observation_space: spaces.Box,
-        action_space: spaces.Discrete,
-        device: str = "cpu",
-        seed: int = 0,
-    ) -> "DQNAgent":
-        """
-        Reconstruct a DQNAgent from a file written by `save()`.
-
-        Raises
-        ------
-        ValueError
-            If the saved policy's action count or observation shape don't
-            match the given spaces — loading a network trained against a
-            differently-configured environment would silently produce
-            nonsensical Q-values, since the network's input/output
-            dimensions would no longer correspond to the environment's
-            actual observation/action semantics.
-        """
-        payload = torch.load(path, map_location=device, weights_only=False)
-
-        if payload["num_actions"] != action_space.n:
-            raise ValueError(
-                f"Saved policy has {payload['num_actions']} actions but the "
-                f"given action_space has {action_space.n}. This policy was "
-                "trained against a differently-configured environment."
-            )
-        if tuple(payload["obs_shape"]) != tuple(observation_space.shape):
-            raise ValueError(
-                f"Saved policy expects observation shape {payload['obs_shape']} "
-                f"but the given observation_space has shape "
-                f"{observation_space.shape}. This policy was trained against "
-                "a differently-configured environment."
-            )
-
-        agent = cls(
-            observation_space=observation_space,
-            action_space=action_space,
-            hidden_layer_sizes=payload["hidden_layer_sizes"],
-            learning_rate=payload["learning_rate"],
-            discount_factor=payload["discount_factor"],
-            exploration_rate=payload["exploration_rate"],
-            exploration_min=payload["exploration_min"],
-            exploration_decay=payload["exploration_decay"],
-            batch_size=1,  # irrelevant for a loaded, evaluation-only agent
-            replay_buffer_size=1,
-            min_replay_size_before_training=1,
-            target_update_frequency=1,
-            grad_clip_norm=None,
-            device=device,
-            seed=seed,
-        )
-        agent.online_network.load_state_dict(payload["online_state_dict"])
-        agent.target_network.load_state_dict(payload["online_state_dict"])
-        agent.online_network.eval()
-
-        logger.info("Loaded DQN policy | path=%s", path)
-        return agent
+    agent.save_model("agents/dqn_model.pt")
