@@ -70,11 +70,11 @@ from pathlib import Path
 from typing import Callable, List, Optional, Tuple
 
 import numpy as np
-from gymnasium.utils.env_checker import check_env
 
 from agents.q_learning import QLearningAgent
 from configs.training_config import TrainingConfig, get_final_training_config
 from pricing_env import PricingEnvironment
+from training.env_utils import build_environment, verify_environment_compatibility
 
 logger = logging.getLogger(__name__)
 
@@ -87,74 +87,6 @@ PolicyFn = Callable[[np.ndarray], int]
 # --------------------------------------------------------------------------- #
 # Environment construction
 # --------------------------------------------------------------------------- #
-def build_environment(config: TrainingConfig) -> PricingEnvironment:
-    """
-    Construct the `PricingEnvironment` for this training run.
-
-    Kept as its own function (rather than inlined in `main()`) so the
-    evaluation harness and any future agent-training script can build an
-    identically-configured environment from the same `TrainingConfig`
-    without duplicating this call.
-    """
-    env = PricingEnvironment(config.env_config)
-    logger.info(
-        "Environment constructed | inventory=%d | horizon=%d days | "
-        "base_price=$%.2f | actions=%d",
-        config.env_config.initial_inventory,
-        config.env_config.selling_horizon_days,
-        config.env_config.base_price,
-        env.action_space.n,
-    )
-    return env
-
-
-def verify_environment_compatibility(env: PricingEnvironment) -> None:
-    """
-    Verify the environment is Gymnasium-API-compliant and resets cleanly.
-
-    Two checks, corresponding directly to this issue's acceptance
-    criteria:
-
-      1. `check_env` — Gymnasium's own compliance checker. Catches
-         malformed observation/action spaces, incorrect `step()`/`reset()`
-         return shapes, etc. Running this here (once, at pipeline-startup
-         time) means any future accidental regression in `pricing_env.py`
-         fails loudly during pipeline setup, rather than surfacing as a
-         confusing shape-mismatch deep inside an agent's training loop.
-      2. `env.reset()` — confirms a fresh episode can actually be started
-         and returns a well-formed observation, independent of whatever
-         `check_env` covers internally.
-
-    Raises
-    ------
-    Exception
-        Re-raises whatever `check_env` or `reset()` raise, uncaught. A
-        training run must never proceed against an environment that fails
-        this check — silently continuing would risk training against
-        malformed observations/rewards with no clear symptom until much
-        later (mirrors the fail-loud philosophy already used throughout
-        `pricing_env.py`, e.g. `step()`'s `RuntimeError`s).
-    """
-    logger.info("Verifying Gymnasium API compliance (check_env)...")
-    check_env(env.unwrapped, skip_render_check=True)
-    logger.info("check_env passed — environment is Gymnasium-API-compliant.")
-
-    logger.info("Verifying reset()...")
-    observation, info = env.reset(seed=None)
-    if observation.shape != env.observation_space.shape:
-        raise RuntimeError(
-            f"reset() returned observation shape {observation.shape}, "
-            f"expected {env.observation_space.shape}"
-        )
-    logger.info(
-        "reset() passed | observation=%s | initial_inventory=%s | "
-        "selling_horizon_days=%s",
-        observation.tolist(),
-        info.get("initial_inventory"),
-        info.get("selling_horizon_days"),
-    )
-
-
 # --------------------------------------------------------------------------- #
 # Placeholder policy (replaced by the real agent in a follow-on task)
 # --------------------------------------------------------------------------- #
@@ -473,7 +405,7 @@ def main() -> None:
         config.exploration_min,
     )
 
-    env = build_environment(config)
+    env = build_environment(config.env_config)
 
     if not args.skip_verification:
         verify_environment_compatibility(env)

@@ -33,64 +33,17 @@ from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
-from gymnasium.utils.env_checker import check_env
 
 from agents.dqn_agent import DQNAgent
 from configs.dqn_config import DQNConfig, get_default_dqn_config
 from pricing_env import PricingEnvironment
+from training.env_utils import build_environment, verify_environment_compatibility
 
 logger = logging.getLogger(__name__)
 
 
 # --------------------------------------------------------------------------- #
 # Environment construction (same shape as train_agent.build_environment)
-# --------------------------------------------------------------------------- #
-def build_environment(config: DQNConfig) -> PricingEnvironment:
-    """Construct the `PricingEnvironment` for this DQN run."""
-    env = PricingEnvironment(config.env_config)
-    logger.info(
-        "Environment constructed | inventory=%d | horizon=%d days | "
-        "base_price=$%.2f | actions=%d",
-        config.env_config.initial_inventory,
-        config.env_config.selling_horizon_days,
-        config.env_config.base_price,
-        env.action_space.n,
-    )
-    return env
-
-
-def verify_environment_compatibility(env: PricingEnvironment) -> None:
-    """
-    Verify the environment is Gymnasium-API-compliant and resets cleanly.
-
-    Identical in spirit to `train_agent.verify_environment_compatibility()`
-    — same two checks (`check_env`, then a real `reset()`), same fail-loud
-    philosophy: a DQN run must never start against an environment that
-    fails this check, since malformed observations would silently corrupt
-    every downstream gradient step, not just produce one bad episode.
-    """
-    logger.info("Verifying Gymnasium API compliance (check_env)...")
-    check_env(env.unwrapped, skip_render_check=True)
-    logger.info("check_env passed — environment is Gymnasium-API-compliant.")
-
-    logger.info("Verifying reset()...")
-    observation, info = env.reset(seed=None)
-    if observation.shape != env.observation_space.shape:
-        raise RuntimeError(
-            f"reset() returned observation shape {observation.shape}, "
-            f"expected {env.observation_space.shape}"
-        )
-    logger.info(
-        "reset() passed | observation=%s | initial_inventory=%s | "
-        "selling_horizon_days=%s",
-        observation.tolist(),
-        info.get("initial_inventory"),
-        info.get("selling_horizon_days"),
-    )
-
-
-# --------------------------------------------------------------------------- #
-# Agent construction
 # --------------------------------------------------------------------------- #
 def build_agent(config: DQNConfig, env: PricingEnvironment) -> DQNAgent:
     """Construct a `DQNAgent` sized to `env`'s observation/action spaces."""
@@ -300,7 +253,7 @@ def main() -> None:
         config.device,
     )
 
-    env = build_environment(config)
+    env = build_environment(config.env_config)
 
     if not args.skip_verification:
         verify_environment_compatibility(env)
