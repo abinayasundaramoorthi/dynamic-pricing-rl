@@ -48,6 +48,13 @@ def action_to_price(
     Returns
     -------
     float
+        The resulting price, clipped to [min_price, max_price].
+
+    Raises
+    ------
+    ValueError
+        If `action` is not a valid index into `price_adjustment_pct`.
+    """
         Updated price after clipping.
     """
 
@@ -84,6 +91,7 @@ def describe_action(
 
     if pct > 0:
         return f"Increase {pct:.0%}"
+    return "Hold price"
 
     return "Hold Price"
 

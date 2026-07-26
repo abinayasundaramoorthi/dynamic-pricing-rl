@@ -1,4 +1,24 @@
 """
+reward.py
+
+Implements the reward function defined in the project design document
+(Section 13 — Reward Design):
+
+    r_t = (price_t * units_sold_t)
+          - lambda_unsold  * unsold_penalty        (terminal step only)
+          - lambda_discount * discount_depth_t^2 * units_sold_t * base_price
+          + lambda_balance * inventory_pacing_bonus_t
+
+Reward design is the single most consequential decision in this project —
+the agent will optimize exactly what this function measures, not what we
+intended it to measure. Every term below exists to counter a specific,
+named failure mode; see the inline docstrings for which one.
+
+This module has no dependency on Gymnasium or the environment class, by
+design — it is a pure function of (price, units_sold, inventory, time),
+independently unit-testable and independently tunable by the Data Scientist
+role (see Stakeholders, design doc Section 7) without touching environment
+mechanics.
 Reward function for Dynamic Pricing Environment.
 """
 
@@ -55,6 +75,42 @@ def calculate_reward(
     season_over=False,
 ):
     """
+    Compute the reward for one environment step.
+
+    Parameters
+    ----------
+    price : float
+        The price offered this step (post action-to-price conversion).
+    base_price : float
+        Reference price; used to normalize the discount and unsold
+        penalties so their magnitude is comparable to revenue regardless
+        of the absolute price scale configured for a given experiment.
+    units_sold : int
+        Units sold this step (already capped at available inventory by
+        the demand simulator).
+    remaining_inventory_after : int
+        Inventory remaining AFTER this step's sale is applied.
+    initial_inventory : int
+        Inventory at the start of the episode; used to compute the actual
+        sell-through fraction for the pacing bonus.
+    days_remaining_after : int
+        Days remaining AFTER this step (i.e. post-decrement).
+    selling_horizon_days : int
+        Total length of the selling season; used to compute the ideal
+        (linear) pacing fraction for the pacing bonus.
+    terminated : bool
+        Whether this step ended the episode (deadline reached or inventory
+        exhausted). The unsold-inventory penalty only applies here — it is
+        a *terminal* cost, not a per-step cost, because unsold inventory
+        only becomes an irreversible loss once no more selling days remain.
+    config : RewardConfig
+        Tunable weighting coefficients.
+
+    Returns
+    -------
+    RewardBreakdown
+        Full decomposition, including `.total` — the scalar reward to
+        return from `PricingEnvironment.step()`.
     Simple reward calculation.
     """
 
