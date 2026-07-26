@@ -177,7 +177,7 @@ def run_single_experiment(
         config.seed,
     )
 
-    env = build_environment(config)
+    env = build_environment(config.env_config)
     try:
         verify_environment_compatibility(env)
         episode_rewards, episode_revenues = _run_episodes(env, config)
