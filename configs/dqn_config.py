@@ -6,6 +6,15 @@ for Deep Q-Network training.
 """
 
 
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import List, Optional
+
+from pricing_env import PricingEnvConfig
+from pricing_env.demand_simulator import DemandConfig
+from pricing_env.reward import RewardConfig
+
 class DQNConfig:
     """Configuration values for DQN."""
 
@@ -37,6 +46,8 @@ class DQNConfig:
     RANDOM_SEED = 42
 
     DEVICE = "auto"
+
+"""
 dqn_config.py
 
 Configuration for the Deep Q-Network (DQN) training pipeline
@@ -44,7 +55,7 @@ Configuration for the Deep Q-Network (DQN) training pipeline
 
 Deliberately mirrors the structure of configs/training_config.py: same
 frozen-dataclass style, same "one object fully specifies one run"
-philosophy, same nested PricingEnvConfig composition — anyone already
+philosophy, same nested PricingEnvConfig composition anyone already
 familiar with TrainingConfig can read this in a few seconds.
 
 DQNConfig is a SEPARATE dataclass from TrainingConfig, not a subclass or
@@ -55,14 +66,6 @@ Forcing both into one shared config would mean each agent type carries
 fields that are meaningless for it.
 """
 
-from __future__ import annotations
-
-from dataclasses import dataclass, field
-from typing import List, Optional
-
-from pricing_env import PricingEnvConfig
-from pricing_env.demand_simulator import DemandConfig
-from pricing_env.reward import RewardConfig
 
 _ALLOWED_DEVICES = {"cpu", "cuda"}
 
@@ -277,4 +280,58 @@ def get_default_dqn_config() -> DQNConfig:
             demand=DemandConfig(),
             reward=RewardConfig(),
         )
+    )
+# ============================================================
+# Issue #79 : DQN Hyperparameter Tuning
+# ============================================================
+
+# Tuned hyperparameters obtained after experimentation.
+
+OPTIMIZED_DQN_PARAMETERS = {
+    "learning_rate": 5e-4,
+    "discount_factor": 0.99,
+    "batch_size": 64,
+    "replay_buffer_size": 50000,
+    "target_update_frequency": 500,
+    "hidden_layer_sizes": [128, 128],
+}
+
+
+def get_optimized_dqn_config() -> DQNConfig:
+    """
+    Returns a DQN configuration using tuned hyperparameters.
+    """
+
+    config = get_default_dqn_config()
+
+    return DQNConfig(
+        env_config=config.env_config,
+        num_episodes=config.num_episodes,
+        seed=config.seed,
+        max_steps_per_episode=config.max_steps_per_episode,
+        log_every_n_episodes=config.log_every_n_episodes,
+
+        hidden_layer_sizes=OPTIMIZED_DQN_PARAMETERS["hidden_layer_sizes"],
+
+        learning_rate=OPTIMIZED_DQN_PARAMETERS["learning_rate"],
+        discount_factor=OPTIMIZED_DQN_PARAMETERS["discount_factor"],
+
+        exploration_rate=config.exploration_rate,
+        exploration_min=config.exploration_min,
+        exploration_decay=config.exploration_decay,
+
+        batch_size=OPTIMIZED_DQN_PARAMETERS["batch_size"],
+        replay_buffer_size=OPTIMIZED_DQN_PARAMETERS["replay_buffer_size"],
+
+        min_replay_size_before_training=config.min_replay_size_before_training,
+
+        target_update_frequency=OPTIMIZED_DQN_PARAMETERS["target_update_frequency"],
+
+        gradient_steps_per_env_step=config.gradient_steps_per_env_step,
+        grad_clip_norm=config.grad_clip_norm,
+
+        checkpoint_dir=config.checkpoint_dir,
+        results_dir=config.results_dir,
+        num_eval_episodes=config.num_eval_episodes,
+        device=config.device,
     )
