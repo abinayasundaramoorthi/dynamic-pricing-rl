@@ -97,7 +97,7 @@ def small_config() -> DQNConfig:
 
 @pytest.fixture()
 def env(small_config: DQNConfig) -> PricingEnvironment:
-    e = build_environment(small_config)
+    e = build_environment(small_config.env_config)
     yield e
     e.close()
 
