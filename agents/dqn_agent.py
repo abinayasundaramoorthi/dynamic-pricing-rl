@@ -20,6 +20,9 @@ DQN algorithm (Mnih et al., 2015):
      the action actually taken, and the target
   7. Backpropagate and update the online network's weights
   8. Periodically synchronize the target network to match the online network
+
+Also tracks per-episode average training loss (Issue #84), so learning
+progress can be visualized alongside episode reward.
 """
 
 import random
@@ -41,26 +44,6 @@ class DQNAgent:
                  epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.01,
                  buffer_capacity=10000, batch_size=64,
                  target_update_frequency=500, device=None):
-        """
-        Parameters
-        ----------
-        state_dim : int
-        action_dim : int
-        hidden_dim : int
-        learning_rate : float
-            Step size for the Adam optimizer updating the online network.
-        discount_factor : float (gamma)
-        epsilon, epsilon_decay, epsilon_min : float
-            Same epsilon-greedy exploration scheme as QLearningAgent.
-        buffer_capacity : int
-            Max size of the replay buffer.
-        batch_size : int
-            Number of experiences sampled per training step.
-        target_update_frequency : int
-            Training steps between target network synchronizations.
-        device : str, optional
-            "cpu" or "cuda". Auto-detected if not given.
-        """
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.gamma = discount_factor
@@ -82,6 +65,7 @@ class DQNAgent:
 
         self.episode_rewards = []
         self.epsilon_history = []
+        self.episode_avg_loss = []  # average training loss per episode (Issue #84)
 
     def choose_action(self, observation, greedy=False):
         """Epsilon-greedy action selection using the online network."""
@@ -98,7 +82,7 @@ class DQNAgent:
     def _train_step(self):
         """Perform one gradient descent update using a sampled mini-batch."""
         if not self.replay_buffer.is_ready(self.batch_size):
-            return None  # not enough experiences yet
+            return None
 
         states, actions, rewards, next_states, dones = self.replay_buffer.sample(
             self.batch_size
@@ -110,13 +94,9 @@ class DQNAgent:
         next_states = torch.tensor(next_states, dtype=torch.float32, device=self.device)
         dones = torch.tensor(dones, dtype=torch.float32, device=self.device)
 
-        # Current Q-value predictions for the actions actually taken
         q_values = self.q_network(states)
         predicted_q = q_values.gather(1, actions.unsqueeze(1)).squeeze(1)
 
-        # Target: reward + gamma * max Q(next_state) from the TARGET network
-        # (not the online network -- this is the whole point of Issue #75).
-        # If the episode ended (done=1), there's no future reward to add.
         target_q_values = self.target_manager.get_target_q_values(next_states)
         max_next_q = torch.max(target_q_values, dim=1)[0]
         target = rewards + self.gamma * max_next_q * (1 - dones)
@@ -127,7 +107,7 @@ class DQNAgent:
         loss.backward()
         self.optimizer.step()
 
-        self.target_manager.step()  # may or may not trigger a sync this step
+        self.target_manager.step()
 
         return loss.item()
 
@@ -140,6 +120,7 @@ class DQNAgent:
             observation, info = env.reset()
             done = False
             total_reward = 0
+            episode_losses = []
 
             while not done:
                 action = self.choose_action(observation)
@@ -147,7 +128,9 @@ class DQNAgent:
                 done = terminated or truncated
 
                 self.replay_buffer.push(observation, action, reward, next_observation, done)
-                self._train_step()
+                loss = self._train_step()
+                if loss is not None:
+                    episode_losses.append(loss)
 
                 observation = next_observation
                 total_reward += reward
@@ -156,10 +139,15 @@ class DQNAgent:
             self.episode_rewards.append(total_reward)
             self.epsilon_history.append(self.epsilon)
 
+            avg_loss_this_episode = float(np.mean(episode_losses)) if episode_losses else 0.0
+            self.episode_avg_loss.append(avg_loss_this_episode)
+
             if verbose and episode % 100 == 0:
                 avg_reward = np.mean(self.episode_rewards[-100:])
+                avg_loss = np.mean(self.episode_avg_loss[-100:])
                 print(f"Episode {episode}/{num_episodes} | "
                       f"Avg reward (last 100): {avg_reward:.2f} | "
+                      f"Avg loss (last 100): {avg_loss:.4f} | "
                       f"Epsilon: {self.epsilon:.3f}")
 
         return self.episode_rewards
