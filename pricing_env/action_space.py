@@ -55,8 +55,6 @@ def action_to_price(
     ValueError
         If `action` is not a valid index into `price_adjustment_pct`.
     """
-        Updated price after clipping.
-    """
 
     if not (0 <= action < len(price_adjustment_pct)):
         raise ValueError(
@@ -92,8 +90,6 @@ def describe_action(
     if pct > 0:
         return f"Increase {pct:.0%}"
     return "Hold price"
-
-    return "Hold Price"
 
 
 if __name__ == "__main__":
