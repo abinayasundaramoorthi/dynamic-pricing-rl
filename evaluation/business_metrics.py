@@ -147,7 +147,6 @@ if __name__ == "__main__":
         remaining_inventory=20,
         units_sold=80,
     )
-
     print("\nBusiness KPI Summary\n")
 
     for key, value in metrics.items():
