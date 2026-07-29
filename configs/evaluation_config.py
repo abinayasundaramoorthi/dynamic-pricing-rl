@@ -151,8 +151,13 @@ class EvaluationConfig:
     business_kpis : BusinessKPIConfig
         Thresholds the evaluation report scores each policy against.
     results_dir : str
-        Directory the evaluation harness writes its output artifacts to
-        (per-policy episode-level CSV, aggregate summary CSV/JSON).
+        Directory the evaluation harness writes its output artifacts to:
+        the episode-level results file (`evaluation_results.csv`, named to
+        match the project's deliverable spec exactly) and the aggregate
+        summary CSV/JSON. Defaults to `"evaluation"` so
+        `evaluation_results.csv` lands directly at `evaluation/evaluation_results.csv`
+        with no manual copy/rename step required after running the
+        pipeline.
     reference_policy_for_uplift : str
         Which policy name in `policies_to_evaluate` is used as the "1.0x"
         baseline when computing each other policy's revenue-uplift
@@ -182,7 +187,7 @@ class EvaluationConfig:
 
     business_kpis: BusinessKPIConfig = field(default_factory=BusinessKPIConfig)
 
-    results_dir: str = "evaluation/results"
+    results_dir: str = "evaluation"
     reference_policy_for_uplift: str = "fixed_price"
 
     def __post_init__(self) -> None:

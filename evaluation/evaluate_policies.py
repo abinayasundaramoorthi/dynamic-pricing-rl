@@ -348,6 +348,12 @@ def save_results(
     """
     Write episode-level and summary results to `config.results_dir`.
 
+    The episode-level file is written as `evaluation_results.csv` — that
+    exact filename, no manual rename needed afterward — matching issue
+    #98's deliverable spec (`evaluation/evaluation_results.csv`) directly.
+    With the default `results_dir="evaluation"`, this lands at exactly
+    `evaluation/evaluation_results.csv` every time the pipeline is run.
+
     Returns a dict of the paths written, so `main()` can log/print them
     without the caller having to reconstruct the naming convention.
     """
@@ -359,7 +365,7 @@ def save_results(
     episode_rows = [
         asdict(r) for results in all_episode_results.values() for r in results
     ]
-    episode_path = results_dir / "policy_evaluation_episodes.csv"
+    episode_path = results_dir / "evaluation_results.csv"
     pd.DataFrame(episode_rows).to_csv(episode_path, index=False)
     written["episodes_csv"] = episode_path
 
@@ -386,6 +392,7 @@ def save_results(
     written["summary_json"] = summary_json_path
 
     logger.info("Wrote evaluation results to %s", results_dir)
+    logger.info("Episode-level results (deliverable): %s", episode_path)
     return written
 
 
