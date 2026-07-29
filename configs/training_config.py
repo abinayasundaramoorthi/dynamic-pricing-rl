@@ -233,3 +233,4 @@ def get_final_training_config() -> TrainingConfig:
         exploration_decay=0.9994,
         num_eval_episodes=200,
     )
+print("configuration file is working fine")

@@ -1,0 +1,15 @@
+{
+  "experiment_name": "alternate_seed",
+  "description": "Same hyperparameters as baseline under a different random seed \u2014 a replication check, not a hyperparameter sweep entry.",
+  "num_episodes": 1000,
+  "learning_rate": 0.1,
+  "discount_factor": 0.99,
+  "exploration_rate": 1.0,
+  "seed": 1234,
+  "mean_reward": 11291.624752840375,
+  "std_reward": 7173.376290598183,
+  "mean_revenue": 14330.297108862935,
+  "std_revenue": 3478.695173423718,
+  "mean_reward_last_n": 11447.28022970545,
+  "mean_revenue_last_n": 14656.242521787193
+}

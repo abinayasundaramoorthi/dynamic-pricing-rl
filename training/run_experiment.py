@@ -4,12 +4,12 @@ run_experiment.py
 Runs a suite of RL experiments (configs/experiment_config.py) and stores
 each experiment's results independently, so different hyperparameter
 configurations can be compared side-by-side later (Week 4
-evaluation/dashboard work) — without any experiment parameter being
+evaluation/dashboard work) - without any experiment parameter being
 hardcoded in this file.
 
 Scope note (same placeholder-policy precedent set by train_agent.py's Day 1
 pipeline, issue #42): no trainable agent exists yet, so every experiment in
-today's suite runs the same random-action policy — only the *config*
+today's suite runs the same random-action policy - only the *config*
 varies between experiments. This means today's numeric results are NOT a
 meaningful comparison of hyperparameter effects on learning; there is no
 learning happening yet. What this script proves is that the experiment
@@ -67,7 +67,7 @@ def _run_episodes(
     data, which is exactly what this script needs to persist and compare
     across experiments. This loop is intentionally the same shape as
     `run_training()` (same `random_policy` placeholder, same
-    `max_steps_per_episode` safety cap) — only the "collect and return"
+    `max_steps_per_episode` safety cap) - only the "collect and return"
     behavior differs. A natural follow-on refactor would have
     `run_training()` accept an optional metrics-collector callback so this
     duplication goes away; not done here to avoid modifying already-shipped
@@ -178,7 +178,7 @@ def run_single_experiment(
         Root directory under which this experiment's own subfolder is created.
     episodes_override : int, optional
         If given, overrides `num_episodes` for this run regardless of what
-        the experiment or default config specify — used for fast smoke
+        the experiment or default config specify - used for fast smoke
         testing the whole suite without waiting on full-length runs.
 
     Returns
@@ -201,7 +201,14 @@ def run_single_experiment(
         config.seed,
     )
 
-    env = build_environment(config)
+    # NOTE: build_environment() takes the env-specific sub-config
+    # (config.env_config), matching how training/train_agent.py's own
+    # main() calls it - not the whole TrainingConfig. The previous version
+    # of this file passed `config` directly, which is inconsistent with
+    # that usage and would fail (or silently misconfigure the environment)
+    # depending on what build_environment() actually expects as its
+    # parameter type.
+    env = build_environment(config.env_config)
     try:
         verify_environment_compatibility(env)
         episode_rewards, episode_revenues = _run_episodes(env, config)
@@ -245,7 +252,7 @@ def run_experiment_suite(
     duplicates = sorted({n for n in names if names.count(n) > 1})
     if duplicates:
         raise ValueError(
-            f"Duplicate experiment name(s) in suite: {duplicates} — each "
+            f"Duplicate experiment name(s) in suite: {duplicates} - each "
             "ExperimentConfig.name must be unique, since it is used as the "
             "results folder name and would otherwise silently overwrite "
             "another experiment's results."
