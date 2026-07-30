@@ -1,0 +1,42 @@
+[
+    {
+        "Strategy": "Static Pricing",
+        "Total Revenue": 20000,
+        "Average Revenue": 400,
+        "Revenue Growth": 0.0,
+        "Inventory Utilization": 75,
+        "Sell-through Rate": 75,
+        "Average Selling Price": 200,
+        "Policy Rank": 4
+    },
+    {
+        "Strategy": "Rule-Based Pricing",
+        "Total Revenue": 21500,
+        "Average Revenue": 430,
+        "Revenue Growth": 7.5,
+        "Inventory Utilization": 82,
+        "Sell-through Rate": 82,
+        "Average Selling Price": 205,
+        "Policy Rank": 3
+    },
+    {
+        "Strategy": "Q-Learning",
+        "Total Revenue": 24300,
+        "Average Revenue": 486,
+        "Revenue Growth": 21.5,
+        "Inventory Utilization": 90,
+        "Sell-through Rate": 90,
+        "Average Selling Price": 214,
+        "Policy Rank": 2
+    },
+    {
+        "Strategy": "DQN",
+        "Total Revenue": 26100,
+        "Average Revenue": 522,
+        "Revenue Growth": 30.5,
+        "Inventory Utilization": 95,
+        "Sell-through Rate": 95,
+        "Average Selling Price": 220,
+        "Policy Rank": 1
+    }
+]
