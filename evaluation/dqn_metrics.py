@@ -19,7 +19,7 @@ Metrics tracked per episode:
                          since tabular Q-Learning has no loss)
 - Exploration Rate (Epsilon) (the epsilon value used during that episode)
 
-Usage (inside a training loop):
+Usage (inside a training loop, e.g. training/train_dqn.py):
 
     monitor = DQNTrainingMonitor(save_dir='evaluation/dqn_runs/run_001')
 
@@ -29,7 +29,7 @@ Usage (inside a training loop):
         episode_losses = []
 
         while not (terminated or truncated):
-            action = agent.act(obs, episode=episode, training=True)
+            action = agent.select_action(obs)
             next_obs, reward, terminated, truncated, info = env.step(action)
             agent.remember(obs, action, reward, next_obs, terminated)
             loss = agent.train_step()
@@ -37,13 +37,15 @@ Usage (inside a training loop):
                 episode_losses.append(loss)
             obs = next_obs
 
+        units_sold = config.initial_inventory - obs[0]
+
         monitor.log_episode(
             episode=episode,
-            reward=env.total_revenue,
-            units_sold=env.total_inventory - env.inventory_remaining,
-            total_inventory=env.total_inventory,
+            reward=info["episode_revenue"],
+            units_sold=units_sold,
+            total_inventory=config.initial_inventory,
             avg_loss=np.mean(episode_losses) if episode_losses else None,
-            epsilon=agent.get_epsilon(episode),
+            epsilon=agent.exploration_rate,
         )
 
     monitor.save()
@@ -66,8 +68,8 @@ class DQNTrainingMonitor:
             Created automatically if it doesn't exist.
         rolling_window : int
             Window size for the "Average Reward" rolling metric - matches
-            the smoothing window convention used in
-            notebooks/dqn_training.ipynb for visual consistency.
+            the smoothing window convention used elsewhere in this
+            project for visual consistency.
         """
         self.save_dir = save_dir
         os.makedirs(save_dir, exist_ok=True)
@@ -187,49 +189,62 @@ class DQNTrainingMonitor:
 
 
 if __name__ == "__main__":
-    # Self-test: run a SHORT real DQN training session through the full
-    # monitoring framework, to confirm logging, summary computation, and
-    # saving all work correctly end-to-end (satisfies "ready for
-    # integration with DQN training").
+    # Self-test: run a SHORT training/evaluation session through the full
+    # monitoring framework, against the ACTUAL pricing_env package, to
+    # confirm logging, summary computation, and saving all work correctly
+    # end-to-end.
+    #
+    # NOTE: this uses the random policy as a stand-in, NOT a real DQN
+    # agent - there is currently no confirmed-working DQNAgent for the
+    # pricing_env package in this codebase (agents/dqn_agent.py referenced
+    # by training/train_dqn.py has not been verified here). This still
+    # proves the logging/saving mechanics (episode_reward, revenue,
+    # units_sold, utilization, CSV/JSON export) work correctly against
+    # the real environment. `loss` and `epsilon` will be None for every
+    # episode here, since no real training is occurring - once a working
+    # DQN agent exists, swap the random-action line below for
+    # `agent.select_action(obs)` / `agent.remember(...)` /
+    # `agent.train_step()` and pass its real loss/epsilon values instead,
+    # per the usage example in this file's module docstring.
     import sys
     sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-    from environment import DynamicPricingEnv
-    from agents.dqn_agent import DQNAgent, make_state_normalizer
 
-    env = DynamicPricingEnv()
-    normalizer = make_state_normalizer(env.selling_window, env.total_inventory)
-    agent = DQNAgent(state_dim=2, num_actions=env.action_space.n, state_normalizer=normalizer,
-                      epsilon_decay_episodes=100)
+    from pricing_env import PricingEnvironment, PricingEnvConfig
+
+    config = PricingEnvConfig()
+    env = PricingEnvironment(config)
 
     monitor = DQNTrainingMonitor(save_dir=os.path.join(os.path.dirname(__file__), 'dqn_runs', 'self_test'))
 
     NUM_TEST_EPISODES = 150  # short run, just to prove the framework works end-to-end
-    print(f"Running a {NUM_TEST_EPISODES}-episode self-test of the monitoring framework...")
+    print(f"Running a {NUM_TEST_EPISODES}-episode self-test of the monitoring framework "
+          f"(random policy - no DQN agent confirmed for this package yet)...")
 
     for episode in range(NUM_TEST_EPISODES):
         obs, info = env.reset(seed=42 + episode)
         terminated = truncated = False
-        episode_losses = []
 
         while not (terminated or truncated):
-            action = agent.act(obs, episode=episode, training=True)
-            next_obs, reward, terminated, truncated, info = env.step(action)
-            agent.remember(obs, action, reward, next_obs, terminated)
-            loss = agent.train_step()
-            if loss is not None:
-                episode_losses.append(loss)
-            obs = next_obs
+            action = env.action_space.sample()  # stand-in for agent.select_action(obs)
+            obs, reward, terminated, truncated, info = env.step(action)
+
+        units_sold = config.initial_inventory - obs[0]
 
         monitor.log_episode(
             episode=episode,
-            reward=env.total_revenue,
-            units_sold=env.total_inventory - env.inventory_remaining,
-            total_inventory=env.total_inventory,
-            avg_loss=float(np.mean(episode_losses)) if episode_losses else None,
-            epsilon=agent.get_epsilon(episode),
+            reward=info["episode_revenue"],
+            units_sold=units_sold,
+            total_inventory=config.initial_inventory,
+            avg_loss=None,   # no real training occurring in this self-test
+            epsilon=None,    # no real training occurring in this self-test
         )
 
     csv_path, summary_path = monitor.save()
     monitor.print_summary()
     print(f"\nSaved episode log to: {csv_path}")
     print(f"Saved summary to: {summary_path}")
+    print("\nNOTE: loss/epsilon are blank above because this self-test used a "
+          "random policy, not a real DQN agent. Once agents/dqn_agent.py is "
+          "confirmed working for pricing_env, pass its real loss/epsilon "
+          "values into log_episode() per the usage example in this file's "
+          "module docstring.")
