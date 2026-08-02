@@ -76,6 +76,7 @@ def action_to_price(
     ValueError
         If `action` is not a valid index into `price_adjustment_pct`.
     """
+
     if not (0 <= action < len(price_adjustment_pct)):
         raise ValueError(
             f"Invalid action {action!r}. Must be an integer in "
@@ -110,3 +111,35 @@ def describe_action(action: int, price_adjustment_pct: Sequence[float]) -> str:
     if pct > 0:
         return f"Increase {pct:.0%}"
     return "Hold price"
+    return "Hold price"
+
+
+if __name__ == "__main__":
+
+    class DummyConfig:
+        price_adjustment_pct = [-0.10, -0.05, 0.00, 0.05, 0.10]
+
+    config = DummyConfig()
+
+    space = build_action_space(config)
+
+    print("Action Space:", space)
+
+    current_price = 1000
+    min_price = 500
+    max_price = 1500
+
+    for action in range(space.n):
+        updated = action_to_price(
+            action,
+            current_price,
+            config.price_adjustment_pct,
+            min_price,
+            max_price,
+        )
+
+        print(
+            f"{action} -> "
+            f"{describe_action(action, config.price_adjustment_pct)} "
+            f"= ₹{updated:.2f}"
+        )

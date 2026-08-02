@@ -1,0 +1,106 @@
+{
+  "config": {
+    "num_episodes": 20,
+    "base_seed": 5000000,
+    "policies_to_evaluate": [
+      "dqn",
+      "q_learning",
+      "random",
+      "fixed_price",
+      "time_based_discount"
+    ],
+    "reference_policy_for_uplift": "fixed_price",
+    "business_kpis": {
+      "target_revenue_uplift_pct": 10.0,
+      "target_sell_through_pct": 95.0,
+      "max_spoilage_pct": 5.0
+    }
+  },
+  "results": [
+    {
+      "policy": "dqn",
+      "num_episodes": 20,
+      "mean_reward": 3097.186749289521,
+      "std_reward": 984.5941939196052,
+      "mean_revenue": 7256.3682231238145,
+      "std_revenue": 638.9371407798641,
+      "median_revenue": 7264.811344504529,
+      "mean_sell_through_pct": 100.0,
+      "mean_spoilage_pct": 0.0,
+      "mean_price": 81.19291662226031,
+      "mean_discount_depth_pct": 59.403541688869836,
+      "revenue_uplift_pct": -62.845016778679906,
+      "meets_revenue_uplift_target": false,
+      "meets_sell_through_target": true,
+      "meets_spoilage_target": true
+    },
+    {
+      "policy": "q_learning",
+      "num_episodes": 20,
+      "mean_reward": 11854.390232965432,
+      "std_reward": 6297.778014377564,
+      "mean_revenue": 15099.805194150627,
+      "std_revenue": 2525.5627754019947,
+      "median_revenue": 14774.607859095722,
+      "mean_sell_through_pct": 83.7,
+      "mean_spoilage_pct": 16.3,
+      "mean_price": 216.1729054202096,
+      "mean_discount_depth_pct": 11.451488039955338,
+      "revenue_uplift_pct": -22.684049185096633,
+      "meets_revenue_uplift_target": false,
+      "meets_sell_through_target": false,
+      "meets_spoilage_target": false
+    },
+    {
+      "policy": "random",
+      "num_episodes": 20,
+      "mean_reward": 10413.900653468727,
+      "std_reward": 5717.981695913493,
+      "mean_revenue": 14437.098943384899,
+      "std_revenue": 2241.032147296252,
+      "median_revenue": 14607.54962091682,
+      "mean_sell_through_pct": 80.35,
+      "mean_spoilage_pct": 19.65,
+      "mean_price": 217.77411285297876,
+      "mean_discount_depth_pct": 13.054533617243184,
+      "revenue_uplift_pct": -26.07732235850026,
+      "meets_revenue_uplift_target": false,
+      "meets_sell_through_target": false,
+      "meets_spoilage_target": false
+    },
+    {
+      "policy": "fixed_price",
+      "num_episodes": 20,
+      "mean_reward": 19607.783333333333,
+      "std_reward": 1542.6642329100648,
+      "mean_revenue": 19530.0,
+      "std_revenue": 772.72245987806,
+      "median_revenue": 20000.0,
+      "mean_sell_through_pct": 97.65,
+      "mean_spoilage_pct": 2.35,
+      "mean_price": 200.0,
+      "mean_discount_depth_pct": 0.0,
+      "revenue_uplift_pct": 0.0,
+      "meets_revenue_uplift_target": false,
+      "meets_sell_through_target": true,
+      "meets_spoilage_target": true
+    },
+    {
+      "policy": "time_based_discount",
+      "num_episodes": 20,
+      "mean_reward": 12742.754448476055,
+      "std_reward": 2864.260449719825,
+      "mean_revenue": 13723.938480181276,
+      "std_revenue": 2119.995605317281,
+      "median_revenue": 14001.255645552426,
+      "mean_sell_through_pct": 100.0,
+      "mean_spoilage_pct": 0.0,
+      "mean_price": 147.1830860994513,
+      "mean_discount_depth_pct": 26.408456950274353,
+      "revenue_uplift_pct": -29.728937633480413,
+      "meets_revenue_uplift_target": false,
+      "meets_sell_through_target": true,
+      "meets_spoilage_target": true
+    }
+  ]
+}
