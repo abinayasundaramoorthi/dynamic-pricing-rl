@@ -1,18 +1,22 @@
 """
 metrics.py
 
-Reusable evaluation utilities to analyze and compare agent performance
-during and after training. Designed to work with ANY agent (heuristic,
-Q-Learning, DQN) that exposes a callable act(observation) -> action_index
-interface, so every agent built in this project can be evaluated with
-the exact same, consistent metrics.
+Reusable evaluation utilities to analyze and compare agent performance on
+PricingEnvironment. Works with ANY agent that exposes a callable
+act(observation) -> action_index interface, so heuristic baselines and
+trained RL agents can all be evaluated with the exact same metrics.
 
 Tracked metrics:
-- Average Episode Reward   (mean total reward/revenue per episode)
-- Revenue per Episode      (the full distribution, not just the mean)
-- Inventory Utilization    (% of total inventory actually sold)
-- Price Trends             (which prices get chosen, and when in the
-                             season they tend to be chosen)
+- Average Episode Reward   (mean total reward per episode - note this is
+                             NOT the same as revenue in this environment,
+                             since reward = revenue - discount_penalty -
+                             unsold_penalty + balance_bonus; see reward.py)
+- Revenue per Episode      (the actual dollar revenue earned, separate
+                             from reward, pulled from info['episode_revenue'])
+- Inventory Utilization    (% of initial inventory actually sold)
+- Price Trends             (which prices get charged, and when in the
+                             season they tend to be charged, using the
+                             human-readable action_label from info)
 """
 
 import sys
@@ -22,24 +26,22 @@ import csv
 import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from environment import DynamicPricingEnv
+from pricing_env import PricingEnvironment
 
 
 def collect_episode_metrics(env, act_fn, num_episodes=100, seed=999):
     """
     Runs act_fn through num_episodes full seasons and records detailed
-    per-episode and per-step data needed to compute all four tracked
-    metrics.
+    per-episode and per-step data.
 
     Parameters
     ----------
-    env : DynamicPricingEnv
+    env : PricingEnvironment
         The environment to evaluate in.
     act_fn : callable
         A function taking an observation (numpy array) and returning an
-        action index (int). Works for any agent type - wrap agent-specific
-        act() methods in a lambda if needed (e.g. for agents that need
-        extra args like day_elapsed or a training flag).
+        action index (int). Wrap agent-specific act() methods in a lambda
+        if needed (e.g. for agents that need extra args like a training flag).
     num_episodes : int
         Number of episodes to run.
     seed : int
@@ -51,10 +53,12 @@ def collect_episode_metrics(env, act_fn, num_episodes=100, seed=999):
         Raw per-episode and per-step data, used by
         compute_summary_statistics() to produce the final metrics.
     """
-    episode_rewards = []        # total reward (= total revenue) per episode
-    episode_units_sold = []     # units sold per episode
-    all_prices_chosen = []      # every single price chosen, across all episodes/days
-    price_by_days_remaining = {}  # {days_remaining: [prices chosen at that point]}
+    episode_rewards = []          # sum of step rewards (NOT the same as revenue here)
+    episode_revenues = []         # actual dollar revenue, from info['episode_revenue']
+    episode_units_sold = []
+    all_prices_charged = []
+    all_action_labels = []
+    price_by_days_remaining = {}  # {days_remaining: [prices charged at that point]}
 
     for episode in range(num_episodes):
         obs, info = env.reset(seed=seed + episode)
@@ -62,26 +66,29 @@ def collect_episode_metrics(env, act_fn, num_episodes=100, seed=999):
         episode_reward = 0.0
 
         while not (terminated or truncated):
-            days_remaining_before = int(round(obs[0]))
+            days_remaining_before = int(round(obs[1]))  # obs = [inventory, days_remaining]
             action = act_fn(obs)
-            price = env.price_levels[action]
-
-            all_prices_chosen.append(price)
-            price_by_days_remaining.setdefault(days_remaining_before, []).append(price)
-
             obs, reward, terminated, truncated, info = env.step(action)
             episode_reward += reward
 
+            price = info["price"]
+            all_prices_charged.append(price)
+            all_action_labels.append(info["action_label"])
+            price_by_days_remaining.setdefault(days_remaining_before, []).append(price)
+
         episode_rewards.append(episode_reward)
-        units_sold = env.total_inventory - env.inventory_remaining
+        episode_revenues.append(info["episode_revenue"])
+        units_sold = env.config.initial_inventory - obs[0]
         episode_units_sold.append(units_sold)
 
     return {
         "num_episodes": num_episodes,
-        "total_inventory": env.total_inventory,
+        "initial_inventory": env.config.initial_inventory,
         "episode_rewards": episode_rewards,
+        "episode_revenues": episode_revenues,
         "episode_units_sold": episode_units_sold,
-        "all_prices_chosen": all_prices_chosen,
+        "all_prices_charged": all_prices_charged,
+        "all_action_labels": all_action_labels,
         "price_by_days_remaining": price_by_days_remaining,
     }
 
@@ -93,44 +100,40 @@ def compute_summary_statistics(raw_metrics):
     Episode stats, Inventory Utilization, and Price Trends.
     """
     rewards = np.array(raw_metrics["episode_rewards"])
+    revenues = np.array(raw_metrics["episode_revenues"])
     units_sold = np.array(raw_metrics["episode_units_sold"])
-    total_inventory = raw_metrics["total_inventory"]
-    all_prices = np.array(raw_metrics["all_prices_chosen"])
+    initial_inventory = raw_metrics["initial_inventory"]
+    all_prices = np.array(raw_metrics["all_prices_charged"])
 
-    # --- Average Episode Reward ---
+    # --- Average Episode Reward (RL reward signal, includes penalties/bonuses) ---
     avg_episode_reward = float(np.mean(rewards))
     std_episode_reward = float(np.std(rewards))
 
-    # --- Revenue per Episode (same numbers as reward here, since reward
-    # IS revenue in this environment - reported as its own section since
-    # the task explicitly separates the two, and in general RL setups
-    # "reward" and "business revenue" aren't always identical) ---
+    # --- Revenue per Episode (actual dollar revenue, separate from reward) ---
     revenue_stats = {
-        "avg": avg_episode_reward,
-        "std": std_episode_reward,
-        "min": float(np.min(rewards)),
-        "max": float(np.max(rewards)),
-        "median": float(np.median(rewards)),
+        "avg": float(np.mean(revenues)),
+        "std": float(np.std(revenues)),
+        "min": float(np.min(revenues)),
+        "max": float(np.max(revenues)),
+        "median": float(np.median(revenues)),
     }
 
     # --- Inventory Utilization ---
-    utilization_pct = units_sold / total_inventory * 100
+    utilization_pct = units_sold / initial_inventory * 100
     inventory_utilization = {
         "avg_units_sold": float(np.mean(units_sold)),
         "avg_utilization_pct": float(np.mean(utilization_pct)),
-        "sellout_rate_pct": float(np.mean(units_sold >= total_inventory) * 100),
+        "sellout_rate_pct": float(np.mean(units_sold >= initial_inventory) * 100),
         "min_utilization_pct": float(np.min(utilization_pct)),
     }
 
     # --- Price Trends ---
-    price_levels, price_counts = np.unique(all_prices, return_counts=True)
-    price_distribution = {
-        int(p): float(c / len(all_prices) * 100)
-        for p, c in zip(price_levels, price_counts)
+    action_labels, label_counts = np.unique(raw_metrics["all_action_labels"], return_counts=True)
+    action_distribution = {
+        str(label): float(c / len(raw_metrics["all_action_labels"]) * 100)
+        for label, c in zip(action_labels, label_counts)
     }
 
-    # Average price chosen at early-season / mid-season / late-season points,
-    # to see if the agent's pricing shifts over the course of a season.
     price_by_days = raw_metrics["price_by_days_remaining"]
     all_days = sorted(price_by_days.keys(), reverse=True)  # most days left -> fewest
     if all_days:
@@ -157,7 +160,7 @@ def compute_summary_statistics(raw_metrics):
         "revenue_per_episode": revenue_stats,
         "inventory_utilization": inventory_utilization,
         "price_trends": {
-            "price_distribution_pct": price_distribution,
+            "action_distribution_pct": action_distribution,
             "by_season_phase": price_trend_by_phase,
         },
     }
@@ -178,6 +181,7 @@ def evaluate_agent(env, act_fn, agent_name, num_episodes=100, seed=999):
 
 def save_metrics_json(summary, filepath):
     """Saves a summary dict (from evaluate_agent) to a JSON file."""
+    os.makedirs(os.path.dirname(filepath), exist_ok=True) if os.path.dirname(filepath) else None
     with open(filepath, 'w') as f:
         json.dump(summary, f, indent=2)
 
@@ -193,6 +197,7 @@ def save_comparison_csv(summaries, filepath):
             "agent_name": s["agent_name"],
             "avg_episode_reward": round(s["average_episode_reward"], 2),
             "std_episode_reward": round(s["std_episode_reward"], 2),
+            "avg_revenue": round(s["revenue_per_episode"]["avg"], 2),
             "avg_units_sold": round(s["inventory_utilization"]["avg_units_sold"], 2),
             "avg_utilization_pct": round(s["inventory_utilization"]["avg_utilization_pct"], 2),
             "sellout_rate_pct": round(s["inventory_utilization"]["sellout_rate_pct"], 2),
@@ -200,6 +205,7 @@ def save_comparison_csv(summaries, filepath):
             "late_season_avg_price": s["price_trends"]["by_season_phase"].get("late_season_avg_price"),
         })
 
+    os.makedirs(os.path.dirname(filepath), exist_ok=True) if os.path.dirname(filepath) else None
     with open(filepath, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=rows[0].keys())
         writer.writeheader()
@@ -208,9 +214,11 @@ def save_comparison_csv(summaries, filepath):
 
 if __name__ == "__main__":
     # Self-test: evaluate a random policy end-to-end through the full
-    # metrics pipeline, to confirm everything calculates and saves
-    # correctly (matches the acceptance criteria for this task).
-    env = DynamicPricingEnv()
+    # metrics pipeline, to confirm everything calculates correctly against
+    # the real PricingEnvironment (not a mock).
+    from pricing_env import PricingEnvConfig
+
+    env = PricingEnvironment(PricingEnvConfig())
 
     random_summary = evaluate_agent(
         env,
@@ -220,7 +228,7 @@ if __name__ == "__main__":
     )
 
     print("=== Metrics self-test: Random Policy ===")
-    print(f"Average Episode Reward: ${random_summary['average_episode_reward']:.2f}")
+    print(f"Average Episode Reward: {random_summary['average_episode_reward']:.2f}")
     print(f"Revenue per Episode - min/avg/max: "
           f"${random_summary['revenue_per_episode']['min']:.2f} / "
           f"${random_summary['revenue_per_episode']['avg']:.2f} / "
@@ -228,7 +236,4 @@ if __name__ == "__main__":
     print(f"Inventory Utilization: {random_summary['inventory_utilization']['avg_utilization_pct']:.1f}% "
           f"(sellout rate: {random_summary['inventory_utilization']['sellout_rate_pct']:.1f}%)")
     print(f"Price Trends by phase: {random_summary['price_trends']['by_season_phase']}")
-
-    output_dir = os.path.dirname(__file__)
-    save_metrics_json(random_summary, os.path.join(output_dir, 'random_metrics_test.json'))
-    print(f"\nSaved test metrics to evaluation/random_metrics_test.json")
+    print(f"Action distribution: {random_summary['price_trends']['action_distribution_pct']}")

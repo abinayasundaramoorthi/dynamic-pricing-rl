@@ -1,27 +1,20 @@
 """
-train_dqn.py
+train_agent.py
 
-DQN training entry point for the Travel & Hospitality Dynamic Pricing
-project (Week 3, issue #62 — "Design and Integrate the DQN Training
-Architecture").
+Q-Learning training entry point for the Travel & Hospitality Dynamic
+Pricing project.
 
-Mirrors `training/train_agent.py`'s structure deliberately (build
-environment -> verify compatibility -> build agent -> train -> save ->
-reload from disk -> evaluate) so anyone already familiar with that
-pipeline can read this one quickly. The training LOOP differs from
-`train_agent.run_training()`, though: DQN needs `agent.remember()` to
-store each transition and `agent.train_step()` to periodically sample a
-minibatch and update the network, neither of which the tabular agent's
-single-transition `update()` contract expresses. That difference is why
-this is a separate entry point rather than another branch inside
-`train_agent.build_agent()` — see `reports/dqn_architecture.md` for the
-full rationale.
+Structure (build environment -> verify compatibility -> build agent ->
+train -> save -> reload from disk -> evaluate) is the reference pattern
+that training/train_dqn.py and training/run_experiment.py both mirror -
+see those files' module docstrings for how they reuse this shape.
 
 Usage
 -----
-    python -m training.train_dqn
-    python -m training.train_dqn --episodes 500 --seed 7
-    python -m training.train_dqn --episodes 50 --skip-verification   # fast smoke test
+    python -m training.train_agent
+    python -m training.train_agent --episodes 500 --seed 7
+    python -m training.train_agent --agent random   # baseline, no learning, no save/reload
+    python -m training.train_agent --episodes 50 --skip-verification   # fast smoke test
 """
 
 from __future__ import annotations
@@ -30,12 +23,12 @@ import argparse
 import logging
 from dataclasses import replace
 from pathlib import Path
-from typing import List, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 
-from agents.dqn_agent import DQNAgent
-from configs.dqn_config import DQNConfig, get_default_dqn_config
+from agents.q_learning_agent import QLearningAgent
+from configs.training_config import TrainingConfig, get_default_training_config
 from pricing_env import PricingEnvironment
 from training.env_utils import build_environment, verify_environment_compatibility
 
@@ -43,26 +36,30 @@ logger = logging.getLogger(__name__)
 
 
 # --------------------------------------------------------------------------- #
-# Environment construction (same shape as train_agent.build_environment)
+# Baseline placeholder policy
 # --------------------------------------------------------------------------- #
-def build_agent(config: DQNConfig, env: PricingEnvironment) -> DQNAgent:
-    """Construct a `DQNAgent` sized to `env`'s observation/action spaces."""
-    return DQNAgent(
-        observation_space=env.observation_space,
-        action_space=env.action_space,
-        hidden_layer_sizes=config.hidden_layer_sizes,
+def random_policy(observation: np.ndarray, env: PricingEnvironment) -> int:
+    """
+    Baseline placeholder policy: pick a uniformly random valid action,
+    ignoring `observation` entirely. Used as the default when no agent is
+    given to `run_training()`, and directly by `--agent random` runs and
+    by `training/run_experiment.py`'s current pre-agent experiment suite.
+    """
+    return env.action_space.sample()
+
+
+# --------------------------------------------------------------------------- #
+# Agent construction
+# --------------------------------------------------------------------------- #
+def build_agent(config: TrainingConfig, env: PricingEnvironment) -> QLearningAgent:
+    """Construct a `QLearningAgent` sized to `env`'s action space."""
+    return QLearningAgent(
+        num_actions=env.action_space.n,
         learning_rate=config.learning_rate,
         discount_factor=config.discount_factor,
-        exploration_rate=config.exploration_rate,
-        exploration_min=config.exploration_min,
-        exploration_decay=config.exploration_decay,
-        batch_size=config.batch_size,
-        replay_buffer_size=config.replay_buffer_size,
-        min_replay_size_before_training=config.min_replay_size_before_training,
-        target_update_frequency=config.target_update_frequency,
-        grad_clip_norm=config.grad_clip_norm,
-        device=config.device,
-        seed=config.seed,
+        epsilon=config.exploration_rate,
+        epsilon_decay=config.exploration_decay,
+        epsilon_min=config.exploration_min,
     )
 
 
@@ -70,28 +67,49 @@ def build_agent(config: DQNConfig, env: PricingEnvironment) -> DQNAgent:
 # Training loop
 # --------------------------------------------------------------------------- #
 def run_training(
-    env: PricingEnvironment, config: DQNConfig, agent: DQNAgent
-) -> Tuple[List[float], List[float]]:
+    env: PricingEnvironment,
+    config: TrainingConfig,
+    agent: Optional[QLearningAgent] = None,
+    policy_fn: Optional[Callable[[np.ndarray, PricingEnvironment], int]] = None,
+    collect_metrics: bool = False,
+) -> Optional[Tuple[List[float], List[float]]]:
     """
-    Run DQN training for `config.num_episodes` episodes.
+    Run `config.num_episodes` episodes.
 
-    Per environment step: select an action (epsilon-greedy), step the
-    environment, store the transition (`agent.remember()`), then perform
-    `config.gradient_steps_per_env_step` minibatch updates
-    (`agent.train_step()` — a no-op returning `None` until the replay
-    buffer clears its warm-up threshold). Exploration decays once per
-    completed episode, matching the tabular agent's cadence.
+    Parameters
+    ----------
+    env : PricingEnvironment
+    config : TrainingConfig
+    agent : QLearningAgent, optional
+        If given, takes priority over `policy_fn`: the agent's
+        `select_action()` chooses each action, `update()` is called after
+        every step so it can learn from the transition, and
+        `decay_exploration()` is called once per completed episode.
+    policy_fn : callable, optional
+        Maps an observation to an action index, with NO learning. Used
+        only when `agent` is not given. Defaults to `random_policy`.
+    collect_metrics : bool, default=False
+        If True, record every episode's total reward and final revenue
+        and return them as `(episode_rewards, episode_revenues)`. If
+        False, returns None - progress is only logged, not returned.
+        `training/run_experiment.py` does NOT call this function with
+        collect_metrics=True (it has its own parallel loop for that, by
+        design - see that file's `_run_episodes()` docstring); this flag
+        exists for direct callers of `train_agent.py` that want metrics
+        back without re-implementing the loop.
 
     Returns
     -------
-    Tuple[List[float], List[float]]
-        Per-episode (rewards, revenues), for the caller to summarize or
-        persist — same "return metrics, don't touch disk here" separation
-        of concerns as `train_agent.run_training(collect_metrics=True)`.
+    Optional[Tuple[List[float], List[float]]]
+        `(episode_rewards, episode_revenues)` if `collect_metrics` is
+        True, otherwise None.
     """
+    use_agent = agent is not None
+    if not use_agent and policy_fn is None:
+        policy_fn = random_policy
+
     episode_rewards: List[float] = []
     episode_revenues: List[float] = []
-    recent_losses: List[float] = []
 
     for episode in range(1, config.num_episodes + 1):
         observation, _info = env.reset(seed=config.seed + episode)
@@ -101,14 +119,18 @@ def run_training(
         info = {}
 
         while not (terminated or truncated):
-            action = agent.select_action(observation)
-            next_observation, reward, terminated, truncated, info = env.step(action)
-            agent.remember(observation, action, reward, next_observation, terminated)
+            if use_agent:
+                action = agent.select_action(observation)
+            else:
+                action = policy_fn(observation, env)
 
-            for _ in range(config.gradient_steps_per_env_step):
-                loss = agent.train_step()
-                if loss is not None:
-                    recent_losses.append(loss)
+            next_observation, reward, terminated, truncated, info = env.step(action)
+
+            if use_agent:
+                agent.update(
+                    observation, action, reward, next_observation,
+                    terminated or truncated,
+                )
 
             observation = next_observation
             episode_reward += reward
@@ -120,43 +142,42 @@ def run_training(
             ):
                 truncated = True
 
-        agent.decay_exploration()
+        if use_agent:
+            agent.decay_exploration()
+
         episode_rewards.append(episode_reward)
         episode_revenues.append(info.get("episode_revenue", 0.0))
 
         if episode % config.log_every_n_episodes == 0 or episode == 1:
-            avg_loss = float(np.mean(recent_losses[-200:])) if recent_losses else float("nan")
             logger.info(
-                "Episode %d/%d | steps=%d | reward=%.2f | revenue=$%.2f | "
-                "epsilon=%.3f | avg_loss=%.4f | buffer=%d/%d",
+                "Episode %d/%d | steps=%d | reward=%.2f | revenue=$%.2f",
                 episode,
                 config.num_episodes,
                 steps,
                 episode_reward,
                 info.get("episode_revenue", 0.0),
-                agent.exploration_rate,
-                avg_loss,
-                len(agent.replay_buffer),
-                config.replay_buffer_size,
             )
 
-    logger.info("DQN training loop complete: %d episodes run.", config.num_episodes)
-    return episode_rewards, episode_revenues
+    logger.info("Training loop complete: %d episodes run.", config.num_episodes)
+
+    if collect_metrics:
+        return episode_rewards, episode_revenues
+    return None
 
 
 # --------------------------------------------------------------------------- #
 # Policy saving and evaluation
 # --------------------------------------------------------------------------- #
-def save_policy(agent: DQNAgent, config: DQNConfig) -> Path:
-    """Save `agent`'s network weights under `config.checkpoint_dir`."""
-    checkpoint_path = Path(config.checkpoint_dir) / "dqn_policy.pt"
+def save_policy(agent: QLearningAgent, config: TrainingConfig) -> Path:
+    """Save `agent`'s Q-table under `config.checkpoint_dir`."""
+    checkpoint_path = Path(config.checkpoint_dir) / f"{config.agent_type}_policy.pkl"
     agent.save(checkpoint_path)
     return checkpoint_path
 
 
 def evaluate_agent(
     env: PricingEnvironment,
-    agent: DQNAgent,
+    agent: QLearningAgent,
     num_episodes: int,
     seed_offset: int = 1_000_000,
 ) -> dict:
@@ -165,9 +186,9 @@ def evaluate_agent(
     exploration) and return summary statistics.
 
     `seed_offset` shifts evaluation seeds well clear of the training seed
-    range (`config.seed + episode`), matching `train_agent.evaluate_agent`'s
-    rationale exactly: evaluating on the same seeds a policy trained
-    against risks measuring memorization rather than generalization.
+    range (`config.seed + episode`) - evaluating on the same seeds a
+    policy trained against risks measuring memorization rather than
+    generalization.
     """
     episode_rewards = []
     episode_revenues = []
@@ -199,20 +220,21 @@ def evaluate_agent(
 # --------------------------------------------------------------------------- #
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Train a DQN agent against PricingEnvironment."
+        description="Train an agent against PricingEnvironment."
     )
     parser.add_argument(
-        "--episodes", type=int, default=None, help="Override DQNConfig.num_episodes."
+        "--episodes", type=int, default=None, help="Override TrainingConfig.num_episodes."
     )
     parser.add_argument(
-        "--seed", type=int, default=None, help="Override DQNConfig.seed."
+        "--seed", type=int, default=None, help="Override TrainingConfig.seed."
     )
     parser.add_argument(
-        "--device",
+        "--agent",
         type=str,
         default=None,
-        choices=["cpu", "cuda"],
-        help="Override DQNConfig.device.",
+        choices=["random", "q_learning"],
+        help="Override TrainingConfig.agent_type. 'random' runs the "
+        "placeholder policy only (no learning, no save/reload/evaluate).",
     )
     parser.add_argument(
         "--skip-verification",
@@ -230,27 +252,27 @@ def main() -> None:
 
     args = parse_args()
 
-    config = get_default_dqn_config()
-    if args.episodes is not None or args.seed is not None or args.device is not None:
-        overrides = {}
-        if args.episodes is not None:
-            overrides["num_episodes"] = args.episodes
-        if args.seed is not None:
-            overrides["seed"] = args.seed
-        if args.device is not None:
-            overrides["device"] = args.device
+    config = get_default_training_config()
+    overrides = {}
+    if args.episodes is not None:
+        overrides["num_episodes"] = args.episodes
+    if args.seed is not None:
+        overrides["seed"] = args.seed
+    if args.agent is not None:
+        overrides["agent_type"] = args.agent
+    if overrides:
         config = replace(config, **overrides)
 
     logger.info(
-        "Loaded DQNConfig | num_episodes=%d | seed=%d | lr=%.4f | gamma=%.3f | "
-        "batch_size=%d | replay_buffer_size=%d | device=%s",
+        "Loaded TrainingConfig | agent_type=%s | num_episodes=%d | seed=%d | "
+        "lr=%.3f | gamma=%.3f | epsilon=%.3f->%.3f",
+        config.agent_type,
         config.num_episodes,
         config.seed,
         config.learning_rate,
         config.discount_factor,
-        config.batch_size,
-        config.replay_buffer_size,
-        config.device,
+        config.exploration_rate,
+        config.exploration_min,
     )
 
     env = build_environment(config.env_config)
@@ -258,35 +280,37 @@ def main() -> None:
     if not args.skip_verification:
         verify_environment_compatibility(env)
 
-    agent = build_agent(config, env)
-
     try:
-        run_training(env, config, agent)
+        if config.agent_type == "random":
+            # Placeholder-policy run: no learning happens, so there is
+            # nothing to save, reload, or evaluate - just run and log.
+            run_training(env, config, policy_fn=random_policy)
+            logger.info("Random-policy run complete (no agent to save/evaluate).")
+        else:
+            agent = build_agent(config, env)
+            run_training(env, config, agent=agent)
 
-        checkpoint_path = save_policy(agent, config)
+            checkpoint_path = save_policy(agent, config)
+            logger.info("Saved trained agent to %s", checkpoint_path)
 
-        # Reload from disk into a FRESH agent instance -- proves the
-        # save/load round-trip actually works, same rationale as
-        # train_agent.main()'s reload-before-evaluate step.
-        reloaded_agent = DQNAgent.load(
-            checkpoint_path,
-            observation_space=env.observation_space,
-            action_space=env.action_space,
-            device=config.device,
-            seed=config.seed,
-        )
+            # Reload from disk into a FRESH agent instance -- proves the
+            # save/load round-trip actually works, not just that a file
+            # got written.
+            reloaded_agent = QLearningAgent.load(
+                checkpoint_path, action_space=env.action_space, seed=config.seed
+            )
 
-        eval_summary = evaluate_agent(
-            env, reloaded_agent, num_episodes=config.num_eval_episodes
-        )
-        logger.info(
-            "Evaluation of reloaded policy (%d episodes, greedy) | "
-            "mean_reward=%.2f | mean_revenue=$%.2f | std_revenue=$%.2f",
-            eval_summary["num_eval_episodes"],
-            eval_summary["mean_reward"],
-            eval_summary["mean_revenue"],
-            eval_summary["std_revenue"],
-        )
+            eval_summary = evaluate_agent(
+                env, reloaded_agent, num_episodes=config.num_eval_episodes
+            )
+            logger.info(
+                "Evaluation of reloaded policy (%d episodes, greedy) | "
+                "mean_reward=%.2f | mean_revenue=$%.2f | std_revenue=$%.2f",
+                eval_summary["num_eval_episodes"],
+                eval_summary["mean_reward"],
+                eval_summary["mean_revenue"],
+                eval_summary["std_revenue"],
+            )
     finally:
         env.close()
 

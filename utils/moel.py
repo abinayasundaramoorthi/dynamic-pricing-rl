@@ -96,4 +96,21 @@ def print_model_summary(model):
     print("\n===================================\n")
 
 
-print("Model utility functions loaded successfully.")
+if __name__ == "__main__":
+    # Self-test: this file defines utility functions only - nothing runs
+    # automatically when imported. This block exists purely so running
+    # `python model_utils.py` directly demonstrates each function works,
+    # rather than silently doing nothing.
+    set_seed(42)
+    device = get_device()
+
+    test_model = nn.Sequential(
+        nn.Linear(2, 64),
+        nn.ReLU(),
+        nn.Linear(64, 64),
+        nn.ReLU(),
+        nn.Linear(64, 7),
+    ).to(device)
+
+    initialize_weights(test_model)
+    print_model_summary(test_model)

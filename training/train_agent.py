@@ -74,7 +74,7 @@ import numpy as np
 from agents.q_learning import QLearningAgent
 from configs.training_config import TrainingConfig, get_final_training_config
 from pricing_env import PricingEnvironment
-from training.env_utils import build_environment, verify_environment_compatibility
+from .env_utils import build_environment, verify_environment_compatibility
 
 logger = logging.getLogger(__name__)
 
@@ -140,24 +140,24 @@ def run_training(
     trainable to checkpoint yet. The config field exists now so the loop
     below only needs a few added lines (not a reshaped config) once a real
     agent lands.
-    """
+    
     if policy_fn is None:
-        Maps an observation to an action index, with NO learning. Used
+        Maps observation to an action index, with NO learning. Used
         only when `agent` is not given. Defaults to `random_policy`.
     agent : QLearningAgent, optional
-        If given, takes priority over `policy_fn`: the agent's
+        If given, takes priority over `policy_fn`: the agents
         `select_action()` chooses each action, `update()` is called after
         every step so it can learn from the transition, and
         `decay_exploration()` is called once per completed episode.
     collect_metrics : bool
-        If True, record every episode's total reward and final revenue
+        If True, record every episodes total reward and final revenue
         and return them as `(episode_rewards, episode_revenues)` once
         training completes. Default False (returns `None`) to keep the
-        common case — train and log, don't hold results in memory —
+        common case  train and log, dont hold results in memory 
         allocation-free. `training/run_experiment.py` uses
         `collect_metrics=True` to run its experiment suite through this
         exact function rather than duplicating the loop (Week 2 Day 5
-        refactor — see that module's docstring for the prior history).
+        refactor  see that modules docstring for the prior history).
 
     Returns
     -------
@@ -167,10 +167,10 @@ def run_training(
 
     Notes
     -----
-    Policy saving is NOT done inside this function — `main()` calls
+    Policy saving is NOT done inside this function  `main()` calls
     `save_policy()` separately after `run_training()` returns. Keeping
     "run episodes" and "persist the result" as separate steps means this
-    function stays reusable by callers that don't want every call to
+    function stays reusable by callers that dont want every call to
     touch disk.
     """
     use_agent = agent is not None
@@ -216,7 +216,8 @@ def run_training(
         if episode % config.log_every_n_episodes == 0 or episode == 1:
             logger.info(
                 "Episode %d/%d | steps=%d | episode_reward=%.2f | "
-                "final_revenue=$%.2f",
+                "final_revenue=$%.2f"
+            )
         if use_agent:
             agent.decay_exploration()
 
@@ -235,7 +236,7 @@ def run_training(
                 steps,
                 episode_reward,
                 info.get("episode_revenue", 0.0),
-            )
+            
             ]
             if use_agent:
                 log_msg += " | exploration_rate=%.3f | states_visited=%d"
@@ -255,7 +256,7 @@ def run_training(
 def build_agent(config: TrainingConfig, env: PricingEnvironment) -> Optional[QLearningAgent]:
     """
     Construct the agent named by `config.agent_type`, or `None` for
-    `"random"` (the Day 1 placeholder path, which has no agent object —
+    `"random"` (the Day 1 placeholder path, which has no agent object 
     `run_training()` falls back to `random_policy` when `agent is None`).
     """
     if config.agent_type == "random":
@@ -279,10 +280,10 @@ def build_agent(config: TrainingConfig, env: PricingEnvironment) -> Optional[QLe
 
 def save_policy(agent: QLearningAgent, config: TrainingConfig) -> Path:
     """
-    Save `agent`'s learned policy under `config.checkpoint_dir`.
+    Save `agent`s learned policy under `config.checkpoint_dir`.
 
-    Returns the path written to, so callers (and `main()`'s subsequent
-    reload-and-evaluate step) don't need to reconstruct it independently.
+    Returns the path written to, so callers (and `main()`s subsequent
+    reload-and-evaluate step) dont need to reconstruct it independently.
     """
     checkpoint_path = Path(config.checkpoint_dir) / f"{config.agent_type}_policy.pkl"
     agent.save(checkpoint_path)
@@ -301,11 +302,11 @@ def evaluate_agent(
 
     `seed_offset` shifts evaluation episode seeds well clear of the seed
     range training used (`config.seed + episode`, episode in
-    [1, num_episodes]) — evaluating on the exact seeds the policy trained
+    [1, num_episodes])  evaluating on the exact seeds the policy trained
     against would risk measuring memorization of those specific random
     draws rather than a policy that generalizes across the demand
-    distribution.
-    """
+    distribution."""
+    
     episode_rewards = []
     episode_revenues = []
 
@@ -339,7 +340,7 @@ def parse_args() -> argparse.Namespace:
     Minimal CLI for overriding the most commonly-tweaked training
     parameters without editing `configs/training_config.py` directly.
     Anything not exposed here can still be changed by editing
-    `TrainingConfig`'s defaults or constructing one programmatically.
+    `TrainingConfig`s defaults or constructing one programmatically.
     """
     parser = argparse.ArgumentParser(description="Train an agent against PricingEnvironment.")
     parser.add_argument(
@@ -373,7 +374,7 @@ def main() -> None:
 
     config = get_default_training_config()
     if args.episodes is not None or args.seed is not None:
-    config = get_final_training_config()
+        config = get_final_training_config()
     if args.episodes is not None or args.seed is not None or args.agent is not None:
         # TrainingConfig is frozen (immutable) by design — see its
         # docstring — so an override is built via `dataclasses.replace`
@@ -389,8 +390,13 @@ def main() -> None:
 
     logger.info(
         "Loaded TrainingConfig | num_episodes=%d | seed=%d | lr=%.3f | gamma=%.3f",
-        if args.agent is not None:
-            overrides["agent_type"] = args.agent
+        config.num_episodes,
+        config.seed,
+        config.learning_rate,
+        config.discount_factor
+    )
+    if args.agent is not None:
+        overrides["agent_type"] = args.agent
         config = replace(config, **overrides)
 
     logger.info(
@@ -412,6 +418,9 @@ def main() -> None:
 
     try:
         run_training(env, config)
+    except Exception as e:
+        logger.error("Error occurred while running training: %s", e)
+        raise
     agent = build_agent(config, env)
 
     try:

@@ -1,0 +1,15 @@
+{
+  "experiment_name": "baseline",
+  "description": "Default hyperparameters from TrainingConfig, unmodified \u2014 the control run every other experiment is compared against.",
+  "num_episodes": 1000,
+  "learning_rate": 0.1,
+  "discount_factor": 0.99,
+  "exploration_rate": 1.0,
+  "seed": 42,
+  "mean_reward": 11222.615778773106,
+  "std_reward": 6903.883488905527,
+  "mean_revenue": 14325.787309882558,
+  "std_revenue": 3361.0734568943294,
+  "mean_reward_last_n": 12894.943907640672,
+  "mean_revenue_last_n": 15319.59352203221
+}

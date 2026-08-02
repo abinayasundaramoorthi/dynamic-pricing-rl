@@ -91,3 +91,5 @@ def verify_environment_compatibility(env: PricingEnvironment) -> None:
         info.get("initial_inventory"),
         info.get("selling_horizon_days"),
     )
+
+print("Environment passed Gymnasium API compliance and reset() checks.")

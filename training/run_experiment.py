@@ -4,12 +4,12 @@ run_experiment.py
 Runs a suite of RL experiments (configs/experiment_config.py) and stores
 each experiment's results independently, so different hyperparameter
 configurations can be compared side-by-side later (Week 4
-evaluation/dashboard work) — without any experiment parameter being
+evaluation/dashboard work) - without any experiment parameter being
 hardcoded in this file.
 
 Scope note (same placeholder-policy precedent set by train_agent.py's Day 1
 pipeline, issue #42): no trainable agent exists yet, so every experiment in
-today's suite runs the same random-action policy — only the *config*
+today's suite runs the same random-action policy - only the *config*
 varies between experiments. This means today's numeric results are NOT a
 meaningful comparison of hyperparameter effects on learning; there is no
 learning happening yet. What this script proves is that the experiment
@@ -43,7 +43,7 @@ from configs.training_config import TrainingConfig
 from pricing_env import PricingEnvironment
 from training.train_agent import (
     build_environment,
-    run_training,
+    random_policy,
     verify_environment_compatibility,
 )
 
@@ -62,19 +62,43 @@ def _run_episodes(
     Execute `config.num_episodes` episodes, recording per-episode reward
     and revenue.
 
-    Week 2 Day 5 refactor: this is now a thin wrapper around
-    `training.train_agent.run_training(collect_metrics=True)` instead of
-    duplicating its loop. Previously this function contained its own
-    copy of the episode loop (same shape as `run_training()`, same
-    `random_policy` fallback, same `max_steps_per_episode` cap) — that
-    duplication was flagged as follow-up work at the time (see the Day 4
-    version of this docstring) and is resolved here: `run_training()` now
-    accepts `collect_metrics=True` and returns exactly what this function
-    needs, so there is exactly one place the episode loop is implemented.
+    Deliberately NOT calling `training.train_agent.run_training()`
+    directly: that function logs progress but does not return per-episode
+    data, which is exactly what this script needs to persist and compare
+    across experiments. This loop is intentionally the same shape as
+    `run_training()` (same `random_policy` placeholder, same
+    `max_steps_per_episode` safety cap) - only the "collect and return"
+    behavior differs. A natural follow-on refactor would have
+    `run_training()` accept an optional metrics-collector callback so this
+    duplication goes away; not done here to avoid modifying already-shipped
+    Day 1 pipeline code (issue #42) as a side effect of this task.
     """
-    result = run_training(env, config, collect_metrics=True)
-    assert result is not None  # guaranteed by collect_metrics=True
-    return result
+    episode_rewards: List[float] = []
+    episode_revenues: List[float] = []
+
+    for episode in range(1, config.num_episodes + 1):
+        observation, _info = env.reset(seed=config.seed + episode)
+        terminated = truncated = False
+        episode_reward = 0.0
+        steps = 0
+        info = {}
+
+        while not (terminated or truncated):
+            action = random_policy(observation, env)
+            observation, reward, terminated, truncated, info = env.step(action)
+            episode_reward += reward
+            steps += 1
+
+            if (
+                config.max_steps_per_episode is not None
+                and steps >= config.max_steps_per_episode
+            ):
+                truncated = True
+
+        episode_rewards.append(episode_reward)
+        episode_revenues.append(info.get("episode_revenue", 0.0))
+
+    return episode_rewards, episode_revenues
 
 
 def _summarize_and_persist(
@@ -154,7 +178,7 @@ def run_single_experiment(
         Root directory under which this experiment's own subfolder is created.
     episodes_override : int, optional
         If given, overrides `num_episodes` for this run regardless of what
-        the experiment or default config specify — used for fast smoke
+        the experiment or default config specify - used for fast smoke
         testing the whole suite without waiting on full-length runs.
 
     Returns
@@ -177,6 +201,13 @@ def run_single_experiment(
         config.seed,
     )
 
+    # NOTE: build_environment() takes the env-specific sub-config
+    # (config.env_config), matching how training/train_agent.py's own
+    # main() calls it - not the whole TrainingConfig. The previous version
+    # of this file passed `config` directly, which is inconsistent with
+    # that usage and would fail (or silently misconfigure the environment)
+    # depending on what build_environment() actually expects as its
+    # parameter type.
     env = build_environment(config.env_config)
     try:
         verify_environment_compatibility(env)
@@ -221,7 +252,7 @@ def run_experiment_suite(
     duplicates = sorted({n for n in names if names.count(n) > 1})
     if duplicates:
         raise ValueError(
-            f"Duplicate experiment name(s) in suite: {duplicates} — each "
+            f"Duplicate experiment name(s) in suite: {duplicates} - each "
             "ExperimentConfig.name must be unique, since it is used as the "
             "results folder name and would otherwise silently overwrite "
             "another experiment's results."

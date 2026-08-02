@@ -83,3 +83,4 @@ def checkpoint_exists(
     """
 
     return os.path.exists(filepath)
+print(f"Checkpoint exists:")

@@ -335,3 +335,4 @@ def get_optimized_dqn_config() -> DQNConfig:
         num_eval_episodes=config.num_eval_episodes,
         device=config.device,
     )
+print("Default DQN configuration:")

@@ -1,0 +1,11 @@
+{
+  "num_episodes": 150,
+  "avg_reward_overall": 14284.435025623485,
+  "avg_reward_first_10pct": 13781.26879313024,
+  "avg_reward_last_10pct": 13005.124705619362,
+  "reward_improvement": -776.1440875108783,
+  "avg_inventory_utilization_pct": 84.65333557128906,
+  "avg_loss_first_10pct": null,
+  "avg_loss_last_10pct": null,
+  "final_epsilon": null
+}
