@@ -1,0 +1,13 @@
+{
+  "hidden_layer_sizes": [
+    64,
+    64
+  ],
+  "num_actions": 7,
+  "learning_rate": 0.001,
+  "discount_factor": 0.99,
+  "final_exploration_rate": 0.05,
+  "gradient_steps_taken": 51811,
+  "replay_buffer_size_at_save": 50000,
+  "saved_at_utc": "2026-07-29T06:38:28.960019+00:00"
+}
