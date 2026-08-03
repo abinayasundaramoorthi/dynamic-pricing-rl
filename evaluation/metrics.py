@@ -230,9 +230,9 @@ if __name__ == "__main__":
     print("=== Metrics self-test: Random Policy ===")
     print(f"Average Episode Reward: {random_summary['average_episode_reward']:.2f}")
     print(f"Revenue per Episode - min/avg/max: "
-          f"${random_summary['revenue_per_episode']['min']:.2f} / "
-          f"${random_summary['revenue_per_episode']['avg']:.2f} / "
-          f"${random_summary['revenue_per_episode']['max']:.2f}")
+          f"₹{random_summary['revenue_per_episode']['min']:.2f} / "
+          f"₹{random_summary['revenue_per_episode']['avg']:.2f} / "
+          f"₹{random_summary['revenue_per_episode']['max']:.2f}")
     print(f"Inventory Utilization: {random_summary['inventory_utilization']['avg_utilization_pct']:.1f}% "
           f"(sellout rate: {random_summary['inventory_utilization']['sellout_rate_pct']:.1f}%)")
     print(f"Price Trends by phase: {random_summary['price_trends']['by_season_phase']}")

@@ -55,7 +55,7 @@ import numpy as np
 import pandas as pd
 
 from agents.dqn_agent import DQNAgent
-from agents.q_learning import QLearningAgent
+from agents.q_learning_agent import QLearningAgent
 from baselines import FixedPricePolicy, RandomPolicy, TimeBasedDiscountPolicy
 from configs.evaluation_config import (
     ALL_POLICY_NAMES,
@@ -123,6 +123,7 @@ def build_policies(config: EvaluationConfig, env: PricingEnvironment) -> Dict[st
                 checkpoint,
                 observation_space=env.observation_space,
                 action_space=env.action_space,
+                hidden_layer_sizes=config.dqn_hidden_layer_sizes,
                 device="cpu",
                 seed=config.base_seed,
             )
@@ -265,7 +266,7 @@ def evaluate_policy(
 
         if i % log_every == 0 or i == len(seeds):
             logger.info(
-                "[%s] episode %d/%d | mean_revenue_so_far=$%.2f",
+                "[%s] episode %d/%d | mean_revenue_so_far=₹%.2f",
                 policy_name,
                 i,
                 len(seeds),

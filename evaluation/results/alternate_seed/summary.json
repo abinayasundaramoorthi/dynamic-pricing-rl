@@ -6,10 +6,10 @@
   "discount_factor": 0.99,
   "exploration_rate": 1.0,
   "seed": 1234,
-  "mean_reward": 11291.624752840375,
-  "std_reward": 7173.376290598183,
-  "mean_revenue": 14330.297108862935,
-  "std_revenue": 3478.695173423718,
-  "mean_reward_last_n": 11447.28022970545,
-  "mean_revenue_last_n": 14656.242521787193
+  "mean_reward": 1077108.0851734434,
+  "std_reward": 684268.3643601607,
+  "mean_revenue": 1366967.0412144351,
+  "std_revenue": 331832.7325928884,
+  "mean_reward_last_n": 1091956.0611116025,
+  "mean_revenue_last_n": 1398058.97415328
 }

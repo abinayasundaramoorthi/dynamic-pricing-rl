@@ -31,11 +31,11 @@ def display_dashboard(metrics):
         print(f"\nStrategy : {strategy['Strategy']}")
         print("-" * 40)
 
-        print(f"Total Revenue           : ${strategy['Total Revenue']:.2f}")
-        print(f"Average Revenue         : ${strategy['Average Revenue']:.2f}")
+        print(f"Total Revenue           : ₹{strategy['Total Revenue']:.2f}")
+        print(f"Average Revenue         : ₹{strategy['Average Revenue']:.2f}")
         print(f"Inventory Utilization   : {strategy['Inventory Utilization']}%")
         print(f"Sell-through Rate       : {strategy['Sell-through Rate']}%")
-        print(f"Average Selling Price   : ${strategy['Average Selling Price']:.2f}")
+        print(f"Average Selling Price   : ₹{strategy['Average Selling Price']:.2f}")
         print(f"Revenue Growth          : {strategy['Revenue Growth']}%")
         print(f"Policy Rank             : {strategy['Policy Rank']}")
 

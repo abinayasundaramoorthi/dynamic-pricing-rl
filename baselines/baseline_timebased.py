@@ -24,7 +24,7 @@ adjustment that isn't in its allowed set, and neither can this baseline.
 Because this rule reacts every step to (remaining_inventory,
 days_remaining) rather than compounding a fixed daily percentage off
 whatever the current price happens to be, it does not carry the classic
-"10%-off-every-day" failure mode of drifting to $0 over a long horizon —
+"10%-off-every-day" failure mode of drifting to ₹0 over a long horizon —
 the target is always freshly computed relative to `base_price`.
 """
 

@@ -37,7 +37,7 @@ def build_environment(env_config: PricingEnvConfig) -> PricingEnvironment:
     env = PricingEnvironment(env_config)
     logger.info(
         "Environment constructed | inventory=%d | horizon=%d days | "
-        "base_price=$%.2f | actions=%d",
+        "base_price=₹%.2f | actions=%d",
         env_config.initial_inventory,
         env_config.selling_horizon_days,
         env_config.base_price,
@@ -91,5 +91,3 @@ def verify_environment_compatibility(env: PricingEnvironment) -> None:
         info.get("initial_inventory"),
         info.get("selling_horizon_days"),
     )
-
-print("Environment passed Gymnasium API compliance and reset() checks.")

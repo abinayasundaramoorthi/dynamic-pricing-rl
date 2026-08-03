@@ -131,7 +131,7 @@ def plot_revenue_trend(df: pd.DataFrame, output_dir: str) -> str:
     """
     path = os.path.join(output_dir, "revenue_trend.png")
     _line_chart(df, "revenue", "Revenue Trend per Episode",
-                "Revenue ($)", "#DA8BC3", path)
+                "Revenue (₹)", "#DA8BC3", path)
     return path
 
 

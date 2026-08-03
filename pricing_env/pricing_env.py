@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 """
@@ -28,6 +27,7 @@ from gymnasium import spaces
 from .action_space import build_action_space, action_to_price, describe_action
 from .demand_simulator import DemandConfig, DemandSimulator, SaleOutcome
 from .reward import RewardBreakdown, RewardConfig, compute_reward
+from utils.currency import USD_TO_INR_RATE
 from .state import EnvState, build_observation_space
 
 logger = logging.getLogger(__name__)
@@ -73,7 +73,7 @@ class PricingEnvConfig:
 
     initial_inventory: int = 100
     selling_horizon_days: int = 30
-    base_price: float = 200.0
+    base_price: float = round(200.0 * USD_TO_INR_RATE, 2)
     price_adjustment_pct: List[float] = field(
         default_factory=lambda: [-0.20, -0.10, -0.05, 0.0, 0.05, 0.10, 0.20]
     )
@@ -392,7 +392,7 @@ class PricingEnvironment(gym.Env):
         )
 
         logger.debug(
-            "step %d | action=%s (%s) | price=$%.2f | sold=%d | "
+            "step %d | action=%s (%s) | price=₹%.2f | sold=%d | "
             "inventory=%d | days_left=%d | reward=%.2f | terminated=%s",
             self._state.current_step,
             action,
@@ -450,10 +450,10 @@ class PricingEnvironment(gym.Env):
             f"  Days remaining:      {self._state.days_remaining} / {self.config.selling_horizon_days}",
             f"  Inventory remaining: {self._state.remaining_inventory:>5d} / {self.config.initial_inventory}",
             f"  Sell-through:        {sell_through_pct:5.1f}%",
-            f"  Current price:       ${self._state.current_price:,.2f}",
+            f"  Current price:       ₹{self._state.current_price:,.2f}",
             f"  Last units sold:     {self._state.last_units_sold}",
             f"  Last demand level:   {self._state.last_demand_level}",
-            f"  Episode revenue:     ${self._state.episode_revenue:,.2f}",
+            f"  Episode revenue:     ₹{self._state.episode_revenue:,.2f}",
             "=" * 56,
         ]
         rendered = "\n".join(lines)
@@ -479,7 +479,7 @@ class PricingEnvironment(gym.Env):
             f"PricingEnvironment(inventory={self._state.remaining_inventory}/"
             f"{self.config.initial_inventory}, "
             f"days_remaining={self._state.days_remaining}/{self.config.selling_horizon_days}, "
-            f"price=${self._state.current_price:.2f})"
+            f"price=₹{self._state.current_price:.2f})"
         )
 
 
@@ -516,4 +516,4 @@ if __name__ == "__main__":
 
     print(env.render())
     print(f"\nEpisode finished | total_reward={total_reward:.2f} | "
-          f"final_revenue=${info['episode_revenue']:.2f}")
+          f"final_revenue=₹{info['episode_revenue']:.2f}")

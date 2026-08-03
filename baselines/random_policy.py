@@ -82,7 +82,7 @@ if __name__ == "__main__":
     print("Running RANDOM pricing policy validation...")
     print(f"Config: initial_inventory={config.initial_inventory}, "
           f"selling_horizon_days={config.selling_horizon_days}, "
-          f"base_price=${config.base_price}, "
+          f"base_price=₹{config.base_price}, "
           f"num_actions={env.action_space.n} "
           f"(adjustments={list(config.price_adjustment_pct)})\n")
 
@@ -91,10 +91,10 @@ if __name__ == "__main__":
     print("=" * 50)
     print("RANDOM POLICY BASELINE RESULTS (100 episodes)")
     print("=" * 50)
-    print(f"Average revenue per episode: ${results['avg_revenue']:.2f}")
-    print(f"Std deviation of revenue:    ${results['std_revenue']:.2f}")
-    print(f"Min revenue:                 ${results['min_revenue']:.2f}")
-    print(f"Max revenue:                 ${results['max_revenue']:.2f}")
+    print(f"Average revenue per episode: ₹{results['avg_revenue']:.2f}")
+    print(f"Std deviation of revenue:    ₹{results['std_revenue']:.2f}")
+    print(f"Min revenue:                 ₹{results['min_revenue']:.2f}")
+    print(f"Max revenue:                 ₹{results['max_revenue']:.2f}")
     print(f"Average units sold:          {results['avg_units_sold']:.1f} / {config.initial_inventory}")
     print(f"Average units UNSOLD:        {results['avg_units_unsold']:.1f}")
     print(f"Sellout rate:                {results['sellout_rate']*100:.1f}% of episodes")

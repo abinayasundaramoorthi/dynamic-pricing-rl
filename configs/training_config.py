@@ -21,6 +21,7 @@ from typing import Optional
 from pricing_env import PricingEnvConfig
 from pricing_env.demand_simulator import DemandConfig
 from pricing_env.reward import RewardConfig
+from utils.currency import USD_TO_INR_RATE
 
 _ALLOWED_AGENT_TYPES = {"random", "q_learning"}
 
@@ -179,7 +180,7 @@ def get_default_training_config() -> TrainingConfig:
         env_config=PricingEnvConfig(
             initial_inventory=100,
             selling_horizon_days=30,
-            base_price=200.0,
+            base_price=round(200.0 * USD_TO_INR_RATE, 2),
             demand=DemandConfig(),
             reward=RewardConfig(),
         )
@@ -220,7 +221,7 @@ def get_final_training_config() -> TrainingConfig:
         env_config=PricingEnvConfig(
             initial_inventory=100,
             selling_horizon_days=30,
-            base_price=200.0,
+            base_price=round(200.0 * USD_TO_INR_RATE, 2),
             demand=DemandConfig(),
             reward=RewardConfig(),
         ),
@@ -233,4 +234,3 @@ def get_final_training_config() -> TrainingConfig:
         exploration_decay=0.9994,
         num_eval_episodes=200,
     )
-print("configuration file is working fine")

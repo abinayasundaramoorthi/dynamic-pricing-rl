@@ -31,6 +31,7 @@ from typing import List, Optional
 from pricing_env import PricingEnvConfig
 from pricing_env.demand_simulator import DemandConfig
 from pricing_env.reward import RewardConfig
+from utils.currency import USD_TO_INR_RATE
 
 # Every policy name this framework knows how to build. Kept as a module
 # level constant (rather than inlined in validation) so
@@ -254,7 +255,7 @@ def get_default_evaluation_config() -> EvaluationConfig:
     Build the default `EvaluationConfig` for this project.
 
     Uses the SAME environment configuration (100 inventory, 30-day
-    horizon, $200 base price) as
+    horizon, ₹19,078 base price (200 USD × 95.39)) as
     `configs.training_config.get_final_training_config()` and
     `configs.dqn_config.get_default_dqn_config()`, deliberately — this is
     what makes the Week 4 comparison an apples-to-apples evaluation of
@@ -266,7 +267,7 @@ def get_default_evaluation_config() -> EvaluationConfig:
         env_config=PricingEnvConfig(
             initial_inventory=100,
             selling_horizon_days=30,
-            base_price=200.0,
+            base_price=round(200.0 * USD_TO_INR_RATE, 2),
             demand=DemandConfig(),
             reward=RewardConfig(),
         )

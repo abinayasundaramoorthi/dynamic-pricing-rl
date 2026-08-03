@@ -1,109 +1,95 @@
 """
 train_agent.py
 
-Training entry point for the Travel & Hospitality Dynamic Pricing project.
+Q-Learning training entry point for the Travel & Hospitality Dynamic
+Pricing project.
 
-Scope of this deliverable (Week 2, Day 1 — "Integrate RL Training
-Pipeline", issue #38)
---------------------------------------------------------------------------
-This script wires the training *pipeline* together: it loads a
-`TrainingConfig`, builds a `PricingEnvironment` from it, and verifies the
-environment is compatible with the training loop (Gymnasium API
-compliance + a clean `reset()`).
+Structure (build environment -> verify compatibility -> build agent ->
+train -> save -> reload from disk -> evaluate) is the reference pattern
+that `training/train_dqn.py` mirrors for DQN - see that file's module
+docstring for how it reuses this shape. `training/env_utils.py` holds the
+`build_environment` / `verify_environment_compatibility` logic shared by
+both.
 
-It deliberately does NOT yet implement a trainable agent (tabular
-Q-Learning / DQN) — that is scoped as a separate, follow-on task, exactly
-the same way `pricing_env.py`'s Day 3 skeleton shipped `reset()`/`render()`
-with a placeholder `step()` before Day 4 filled in the real demand/reward
-logic (see Week1_report_Abinaya.md, Day 3). Following that precedent here:
-rather than silently faking a trained policy, the per-episode action is
-supplied by an explicit, swappable `policy_fn` that defaults to a random
-policy. This keeps the pipeline runnable end-to-end today, while making it
-unmistakable — in the code and in the logs — that no learning is happening
-yet. The next task drops a real agent in by replacing `policy_fn`.
-Scope of this deliverable
---------------------------------------------------------------------------
-Week 2, Day 1 (issue #38 / #42) wired the training *pipeline* together:
-loading a `TrainingConfig`, building a `PricingEnvironment` from it, and
-verifying compatibility (Gymnasium API compliance + a clean `reset()`).
-That version deliberately shipped without a trainable agent — actions came
-from an explicit, swappable `policy_fn` defaulting to `random_policy` — so
-the pipeline was runnable end-to-end while making it unmistakable, in the
-code and the logs, that no learning was happening yet.
+When `config.agent_type == "q_learning"`, this script builds a
+`QLearningAgent` (agents/q_learning_agent.py -- the same class every
+evaluation/dashboard script in this project loads checkpoints with),
+trains it via `run_training()`, saves the resulting Q-table to disk,
+reloads it from disk into a fresh agent instance (proving the save/load
+round-trip actually works, not just that the in-memory object still
+functions), and evaluates that reloaded policy greedily (no exploration)
+on held-out episode seeds.
 
-Week 2, Day 4 ("Integrate optimized agent configuration into a stable
-training pipeline") replaces that placeholder for real: when
-`config.agent_type == "q_learning"`, this script now builds a
-`QLearningAgent` (agents/q_learning.py), trains it via `run_training()`,
-saves the resulting Q-table to disk, reloads it from disk into a fresh
-agent instance (proving the save/load round-trip actually works, not just
-that the in-memory object still functions), and evaluates that reloaded
-policy greedily (no exploration) on held-out episode seeds.
-
-`policy_fn` and `random_policy` are UNCHANGED and still fully supported —
-`agent_type == "random"` still takes that exact code path, with no
-saving/evaluation performed (there is nothing trainable to persist). This
-keeps `training/run_experiment.py`, which calls `build_environment()`,
-`random_policy()`, and `verify_environment_compatibility()` directly and
-does not pass an `agent`, working exactly as before with zero changes on
-its end.
+`agent_type == "random"` runs a parameterless placeholder policy instead
+-- no learning, no save/reload/evaluate step, since there is nothing
+trainable to persist.
 
 Usage
 -----
     python -m training.train_agent
-    python -m training.train_agent --episodes 200 --seed 7
+    python -m training.train_agent --episodes 500 --seed 7
+    python -m training.train_agent --agent random   # baseline, no learning, no save/reload
     python -m training.train_agent --agent q_learning --episodes 5000
+    python -m training.train_agent --episodes 50 --skip-verification   # fast smoke test
 """
 
 from __future__ import annotations
 
 import argparse
 import logging
-from typing import Callable, Optional
-
-import gymnasium as gym
-import numpy as np
-from gymnasium.utils.env_checker import check_env
-
-from configs.training_config import TrainingConfig, get_default_training_config
+from dataclasses import replace
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 
-from agents.q_learning import QLearningAgent
-from configs.training_config import TrainingConfig, get_final_training_config
+from agents.q_learning_agent import QLearningAgent
+from configs.training_config import TrainingConfig, get_default_training_config
 from pricing_env import PricingEnvironment
-from .env_utils import build_environment, verify_environment_compatibility
+from training.env_utils import build_environment, verify_environment_compatibility
 
 logger = logging.getLogger(__name__)
 
 # A policy is any callable mapping an observation to a valid discrete
 # action index. Typed as its own alias so swapping in a real agent later
-# (e.g. `q_learning_agent.select_action`) is a one-line change here.
-PolicyFn = Callable[[np.ndarray], int]
+# is a one-line change here.
+PolicyFn = Callable[[np.ndarray, PricingEnvironment], int]
 
 
 # --------------------------------------------------------------------------- #
-# Environment construction
-# --------------------------------------------------------------------------- #
-# --------------------------------------------------------------------------- #
-# Placeholder policy (replaced by the real agent in a follow-on task)
+# Baseline placeholder policy
 # --------------------------------------------------------------------------- #
 def random_policy(observation: np.ndarray, env: PricingEnvironment) -> int:
     """
-    Sample a uniformly random valid action.
-
-    This is an explicit placeholder, not an agent. It exists so the
-    training loop below can be exercised end-to-end today (env -> action
-    -> step -> reward) without waiting on the Q-Learning/DQN agent, the
-    same way Day 3's placeholder `step()` let the environment skeleton be
-    exercised before Day 4's real demand/reward logic landed. `env` is
-    accepted alongside `observation` purely to sample from its
-    `action_space`; a trained agent's `policy_fn` would ignore `env`
-    entirely and act on `observation` alone.
+    Baseline placeholder policy: pick a uniformly random valid action,
+    ignoring `observation` entirely. Used as the default when no agent is
+    given to `run_training()`, and directly by `--agent random` runs and
+    by `training/run_experiment.py`'s current pre-agent experiment suite.
     """
     return int(env.action_space.sample())
+
+
+# --------------------------------------------------------------------------- #
+# Agent construction
+# --------------------------------------------------------------------------- #
+def build_agent(config: TrainingConfig, env: PricingEnvironment) -> Optional[QLearningAgent]:
+    """Construct the agent named by `config.agent_type`, or `None` for `"random"`."""
+    if config.agent_type == "random":
+        return None
+    if config.agent_type == "q_learning":
+        return QLearningAgent(
+            num_actions=env.action_space.n,
+            learning_rate=config.learning_rate,
+            discount_factor=config.discount_factor,
+            epsilon=config.exploration_rate,
+            epsilon_decay=config.exploration_decay,
+            epsilon_min=config.exploration_min,
+        )
+    # TrainingConfig.__post_init__ already restricts agent_type to known
+    # values, so reaching here would mean this function and the config
+    # validation have drifted out of sync -- fail loudly rather than
+    # silently falling back to the random policy.
+    raise ValueError(f"build_agent() has no case for agent_type={config.agent_type!r}")
 
 
 # --------------------------------------------------------------------------- #
@@ -112,70 +98,39 @@ def random_policy(observation: np.ndarray, env: PricingEnvironment) -> int:
 def run_training(
     env: PricingEnvironment,
     config: TrainingConfig,
-    policy_fn: Optional[PolicyFn] = None,
     agent: Optional[QLearningAgent] = None,
+    policy_fn: Optional[PolicyFn] = None,
     collect_metrics: bool = False,
 ) -> Optional[Tuple[List[float], List[float]]]:
     """
-    Run the training loop for `config.num_episodes` episodes.
+    Run `config.num_episodes` episodes.
 
     Parameters
     ----------
     env : PricingEnvironment
-        Already-constructed environment (see `build_environment`).
     config : TrainingConfig
-        Supplies episode budget, the seed, and the per-episode step cap.
-    policy_fn : PolicyFn, optional
-        Maps an observation to an action index. Defaults to
-        `random_policy` — see the module docstring for why. Replacing
-        this with a real agent's action-selection method (and adding the
-        corresponding learning update after each `step()`) is the entire
-        scope of the follow-on "implement Q-Learning agent" task; nothing
-        else in this loop should need to change.
-
-    Notes
-    -----
-    No agent weights/checkpoints are saved by this placeholder loop even
-    though `config.checkpoint_dir` is already defined — there is nothing
-    trainable to checkpoint yet. The config field exists now so the loop
-    below only needs a few added lines (not a reshaped config) once a real
-    agent lands.
-    
-    if policy_fn is None:
-        Maps observation to an action index, with NO learning. Used
-        only when `agent` is not given. Defaults to `random_policy`.
     agent : QLearningAgent, optional
-        If given, takes priority over `policy_fn`: the agents
-        `select_action()` chooses each action, `update()` is called after
-        every step so it can learn from the transition, and
-        `decay_exploration()` is called once per completed episode.
-    collect_metrics : bool
-        If True, record every episodes total reward and final revenue
-        and return them as `(episode_rewards, episode_revenues)` once
-        training completes. Default False (returns `None`) to keep the
-        common case  train and log, dont hold results in memory 
-        allocation-free. `training/run_experiment.py` uses
-        `collect_metrics=True` to run its experiment suite through this
-        exact function rather than duplicating the loop (Week 2 Day 5
-        refactor  see that modules docstring for the prior history).
+        If given, takes priority over `policy_fn`: the agent's
+        `choose_action()` chooses each action (epsilon-greedy), `update()`
+        is called after every step so it can learn from the transition,
+        and `decay_epsilon()` is called once per completed episode.
+    policy_fn : PolicyFn, optional
+        Maps an observation to an action index, with NO learning. Used
+        only when `agent` is not given. Defaults to `random_policy`.
+    collect_metrics : bool, default=False
+        If True, record every episode's total reward and final revenue
+        and return them as `(episode_rewards, episode_revenues)`. If
+        False, returns None - progress is only logged, not returned.
 
     Returns
     -------
     Optional[Tuple[List[float], List[float]]]
-        `(episode_rewards, episode_revenues)` if `collect_metrics=True`,
-        else `None`.
-
-    Notes
-    -----
-    Policy saving is NOT done inside this function  `main()` calls
-    `save_policy()` separately after `run_training()` returns. Keeping
-    "run episodes" and "persist the result" as separate steps means this
-    function stays reusable by callers that dont want every call to
-    touch disk.
+        `(episode_rewards, episode_revenues)` if `collect_metrics` is
+        True, otherwise None.
     """
     use_agent = agent is not None
     if not use_agent and policy_fn is None:
-        policy_fn = lambda obs: random_policy(obs, env)  # noqa: E731
+        policy_fn = random_policy
 
     episode_rewards: List[float] = []
     episode_revenues: List[float] = []
@@ -185,22 +140,21 @@ def run_training(
         terminated = truncated = False
         episode_reward = 0.0
         steps = 0
-
-        while not (terminated or truncated):
-            action = policy_fn(observation)
-            observation, reward, terminated, truncated, info = env.step(action)
         info = {}
 
         while not (terminated or truncated):
             if use_agent:
-                action = agent.select_action(observation)
+                action = agent.choose_action(observation)
             else:
-                action = policy_fn(observation)
+                action = policy_fn(observation, env)
 
             next_observation, reward, terminated, truncated, info = env.step(action)
 
             if use_agent:
-                agent.update(observation, action, reward, next_observation, terminated)
+                agent.update(
+                    observation, action, reward, next_observation,
+                    terminated or truncated,
+                )
 
             observation = next_observation
             episode_reward += reward
@@ -210,25 +164,17 @@ def run_training(
                 config.max_steps_per_episode is not None
                 and steps >= config.max_steps_per_episode
             ):
-                # Defensive cap only — see TrainingConfig.max_steps_per_episode.
                 truncated = True
 
-        if episode % config.log_every_n_episodes == 0 or episode == 1:
-            logger.info(
-                "Episode %d/%d | steps=%d | episode_reward=%.2f | "
-                "final_revenue=$%.2f"
-            )
         if use_agent:
-            agent.decay_exploration()
+            agent.decay_epsilon()
 
-        if collect_metrics:
-            episode_rewards.append(episode_reward)
-            episode_revenues.append(info.get("episode_revenue", 0.0))
+        episode_rewards.append(episode_reward)
+        episode_revenues.append(info.get("episode_revenue", 0.0))
 
         if episode % config.log_every_n_episodes == 0 or episode == 1:
             log_msg = (
-                "Episode %d/%d | steps=%d | episode_reward=%.2f | "
-                "final_revenue=$%.2f"
+                "Episode %d/%d | steps=%d | reward=%.2f | revenue=₹%.2f"
             )
             log_args = [
                 episode,
@@ -236,11 +182,10 @@ def run_training(
                 steps,
                 episode_reward,
                 info.get("episode_revenue", 0.0),
-            
             ]
             if use_agent:
-                log_msg += " | exploration_rate=%.3f | states_visited=%d"
-                log_args += [agent.exploration_rate, len(agent.q_table)]
+                log_msg += " | epsilon=%.3f | states_visited=%d"
+                log_args += [agent.epsilon, len(agent.q_table)]
             logger.info(log_msg, *log_args)
 
     logger.info("Training loop complete: %d episodes run.", config.num_episodes)
@@ -251,40 +196,10 @@ def run_training(
 
 
 # --------------------------------------------------------------------------- #
-# Agent construction, policy saving, and evaluation (Day 4)
+# Policy saving and evaluation
 # --------------------------------------------------------------------------- #
-def build_agent(config: TrainingConfig, env: PricingEnvironment) -> Optional[QLearningAgent]:
-    """
-    Construct the agent named by `config.agent_type`, or `None` for
-    `"random"` (the Day 1 placeholder path, which has no agent object 
-    `run_training()` falls back to `random_policy` when `agent is None`).
-    """
-    if config.agent_type == "random":
-        return None
-    if config.agent_type == "q_learning":
-        return QLearningAgent(
-            action_space=env.action_space,
-            learning_rate=config.learning_rate,
-            discount_factor=config.discount_factor,
-            exploration_rate=config.exploration_rate,
-            exploration_min=config.exploration_min,
-            exploration_decay=config.exploration_decay,
-            seed=config.seed,
-        )
-    # TrainingConfig.__post_init__ already restricts agent_type to known
-    # values, so reaching here would mean this function and the config
-    # validation have drifted out of sync — fail loudly rather than
-    # silently falling back to the random policy.
-    raise ValueError(f"build_agent() has no case for agent_type={config.agent_type!r}")
-
-
 def save_policy(agent: QLearningAgent, config: TrainingConfig) -> Path:
-    """
-    Save `agent`s learned policy under `config.checkpoint_dir`.
-
-    Returns the path written to, so callers (and `main()`s subsequent
-    reload-and-evaluate step) dont need to reconstruct it independently.
-    """
+    """Save `agent`'s Q-table under `config.checkpoint_dir`."""
     checkpoint_path = Path(config.checkpoint_dir) / f"{config.agent_type}_policy.pkl"
     agent.save(checkpoint_path)
     return checkpoint_path
@@ -298,15 +213,13 @@ def evaluate_agent(
 ) -> dict:
     """
     Run `num_episodes` episodes with `agent` acting purely greedily (no
-    exploration, no further learning) and return summary statistics.
+    exploration) and return summary statistics.
 
-    `seed_offset` shifts evaluation episode seeds well clear of the seed
-    range training used (`config.seed + episode`, episode in
-    [1, num_episodes])  evaluating on the exact seeds the policy trained
-    against would risk measuring memorization of those specific random
-    draws rather than a policy that generalizes across the demand
-    distribution."""
-    
+    `seed_offset` shifts evaluation seeds well clear of the training seed
+    range (`config.seed + episode`) - evaluating on the same seeds a
+    policy trained against risks measuring memorization rather than
+    generalization.
+    """
     episode_rewards = []
     episode_revenues = []
 
@@ -336,13 +249,9 @@ def evaluate_agent(
 # CLI / entry point
 # --------------------------------------------------------------------------- #
 def parse_args() -> argparse.Namespace:
-    """
-    Minimal CLI for overriding the most commonly-tweaked training
-    parameters without editing `configs/training_config.py` directly.
-    Anything not exposed here can still be changed by editing
-    `TrainingConfig`s defaults or constructing one programmatically.
-    """
-    parser = argparse.ArgumentParser(description="Train an agent against PricingEnvironment.")
+    parser = argparse.ArgumentParser(
+        description="Train an agent against PricingEnvironment."
+    )
     parser.add_argument(
         "--episodes", type=int, default=None, help="Override TrainingConfig.num_episodes."
     )
@@ -354,7 +263,8 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default=None,
         choices=["random", "q_learning"],
-        help="Override TrainingConfig.agent_type.",
+        help="Override TrainingConfig.agent_type. 'random' runs the "
+        "placeholder policy only (no learning, no save/reload/evaluate).",
     )
     parser.add_argument(
         "--skip-verification",
@@ -373,30 +283,14 @@ def main() -> None:
     args = parse_args()
 
     config = get_default_training_config()
-    if args.episodes is not None or args.seed is not None:
-        config = get_final_training_config()
-    if args.episodes is not None or args.seed is not None or args.agent is not None:
-        # TrainingConfig is frozen (immutable) by design — see its
-        # docstring — so an override is built via `dataclasses.replace`
-        # rather than mutating fields in place.
-        from dataclasses import replace
-
-        overrides = {}
-        if args.episodes is not None:
-            overrides["num_episodes"] = args.episodes
-        if args.seed is not None:
-            overrides["seed"] = args.seed
-        config = replace(config, **overrides)
-
-    logger.info(
-        "Loaded TrainingConfig | num_episodes=%d | seed=%d | lr=%.3f | gamma=%.3f",
-        config.num_episodes,
-        config.seed,
-        config.learning_rate,
-        config.discount_factor
-    )
+    overrides = {}
+    if args.episodes is not None:
+        overrides["num_episodes"] = args.episodes
+    if args.seed is not None:
+        overrides["seed"] = args.seed
     if args.agent is not None:
         overrides["agent_type"] = args.agent
+    if overrides:
         config = replace(config, **overrides)
 
     logger.info(
@@ -417,48 +311,36 @@ def main() -> None:
         verify_environment_compatibility(env)
 
     try:
-        run_training(env, config)
-    except Exception as e:
-        logger.error("Error occurred while running training: %s", e)
-        raise
-    agent = build_agent(config, env)
+        if config.agent_type == "random":
+            # Placeholder-policy run: no learning happens, so there is
+            # nothing to save, reload, or evaluate - just run and log.
+            run_training(env, config, policy_fn=random_policy)
+            logger.info("Random-policy run complete (no agent to save/evaluate).")
+        else:
+            agent = build_agent(config, env)
+            run_training(env, config, agent=agent)
 
-    try:
-        run_training(env, config, agent=agent)
+            checkpoint_path = save_policy(agent, config)
+            logger.info("Saved trained agent to %s", checkpoint_path)
 
-        if agent is None:
-            # agent_type == "random": nothing trainable to save or
-            # evaluate, matching the Day 1 placeholder's documented
-            # behavior exactly.
-            logger.info(
-                "agent_type='random': no policy to save or evaluate "
-                "(this run exercised the environment only)."
+            # Reload from disk into a FRESH agent instance -- proves the
+            # save/load round-trip actually works, not just that a file
+            # got written.
+            reloaded_agent = QLearningAgent.load(
+                checkpoint_path, action_space=env.action_space, seed=config.seed
             )
-            return
 
-        checkpoint_path = save_policy(agent, config)
-
-        # Reload from disk into a FRESH agent instance, rather than just
-        # reusing the in-memory `agent` object, deliberately: this is what
-        # actually proves the save/load round-trip works — evaluating the
-        # in-memory agent would tell us nothing about whether `save()`
-        # wrote a usable file, only that training itself ran. This is the
-        # concrete thing "evaluation can use the trained policy" means.
-        reloaded_agent = QLearningAgent.load(
-            checkpoint_path, action_space=env.action_space, seed=config.seed
-        )
-
-        eval_summary = evaluate_agent(
-            env, reloaded_agent, num_episodes=config.num_eval_episodes
-        )
-        logger.info(
-            "Evaluation of reloaded policy (%d episodes, greedy) | "
-            "mean_reward=%.2f | mean_revenue=$%.2f | std_revenue=$%.2f",
-            eval_summary["num_eval_episodes"],
-            eval_summary["mean_reward"],
-            eval_summary["mean_revenue"],
-            eval_summary["std_revenue"],
-        )
+            eval_summary = evaluate_agent(
+                env, reloaded_agent, num_episodes=config.num_eval_episodes
+            )
+            logger.info(
+                "Evaluation of reloaded policy (%d episodes, greedy) | "
+                "mean_reward=%.2f | mean_revenue=₹%.2f | std_revenue=₹%.2f",
+                eval_summary["num_eval_episodes"],
+                eval_summary["mean_reward"],
+                eval_summary["mean_revenue"],
+                eval_summary["std_revenue"],
+            )
     finally:
         env.close()
 

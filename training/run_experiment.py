@@ -219,7 +219,7 @@ def run_single_experiment(
         experiment, config, episode_rewards, episode_revenues, results_root
     )
     logger.info(
-        "Finished experiment %r | mean_reward=%.2f | mean_revenue=$%.2f",
+        "Finished experiment %r | mean_reward=%.2f | mean_revenue=₹%.2f",
         experiment.name,
         summary["mean_reward"],
         summary["mean_revenue"],

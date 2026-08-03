@@ -221,7 +221,7 @@ def render_header(summary: pd.DataFrame) -> None:
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Top policy (by mean revenue)", display_name(best["policy"]))
-    col2.metric("Top policy mean revenue", f"${best['mean_revenue']:,.2f}")
+    col2.metric("Top policy mean revenue", f"₹{best['mean_revenue']:,.2f}")
     col3.metric("Reference baseline", reference_name)
     col4.metric("Policies evaluated", len(summary))
 
@@ -249,7 +249,7 @@ def render_policy_performance(summary: pd.DataFrame) -> None:
     table["policy"] = table["policy"].map(display_name)
     table = table.sort_values("mean_revenue", ascending=False)
     table.columns = [
-        "Policy", "Mean Revenue ($)", "Std Revenue ($)", "Revenue Uplift (%)",
+        "Policy", "Mean Revenue (₹)", "Std Revenue (₹)", "Revenue Uplift (%)",
         "Sell-Through (%)", "Spoilage (%)",
         "Meets Revenue Target", "Meets Sell-Through Target", "Meets Spoilage Target",
     ]

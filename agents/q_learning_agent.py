@@ -199,7 +199,7 @@ class QLearningAgent:
                 avg_revenue = np.mean(episode_revenues[-100:])
                 print(f"Episode {episode}/{num_episodes} | "
                       f"Avg reward (last 100): {avg_reward:.2f} | "
-                      f"Avg revenue (last 100): ${avg_revenue:.2f} | "
+                      f"Avg revenue (last 100): ₹{avg_revenue:.2f} | "
                       f"Epsilon: {self.epsilon:.3f}")
 
         return episode_rewards, episode_revenues
@@ -222,7 +222,7 @@ if __name__ == "__main__":
 
     print("\nTraining complete!")
     print(f"Average reward in last 100 episodes: {np.mean(rewards[-100:]):.2f}")
-    print(f"Average revenue in last 100 episodes: ${np.mean(revenues[-100:]):.2f}")
+    print(f"Average revenue in last 100 episodes: ₹{np.mean(revenues[-100:]):.2f}")
     print(f"Number of unique states learned: {len(agent.q_table)}")
 
     # --- Save, then reload into a FRESH agent, to prove the round-trip works ---
@@ -251,4 +251,4 @@ if __name__ == "__main__":
 
     print(f"\nReloaded agent evaluation (100 episodes, greedy):")
     print(f"  Avg reward:  {np.mean(eval_rewards):.2f}")
-    print(f"  Avg revenue: ${np.mean(eval_revenues):.2f}")
+    print(f"  Avg revenue: ₹{np.mean(eval_revenues):.2f}")

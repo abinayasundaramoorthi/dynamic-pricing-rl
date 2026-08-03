@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
         if (episode + 1) % 100 == 0:
             recent_avg = logger.records[-1]["average_reward"]
-            print(f"  Episode {episode + 1}/{NUM_EPISODES} - rolling avg reward: ${recent_avg:.2f}, "
+            print(f"  Episode {episode + 1}/{NUM_EPISODES} - rolling avg reward: ₹{recent_avg:.2f}, "
                   f"transitions seen: {transitions_seen}")
 
     output_path = os.path.join(os.path.dirname(__file__), '..', 'evaluation', 'dqn_training_logs.csv')

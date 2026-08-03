@@ -25,7 +25,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from pricing_env.pricing_env import PricingEnvironment, PricingEnvConfig
 from agents.q_learning_agent import QLearningAgent
 from agents.dqn_agent import DQNAgent
-from policy_evaluator import (
+from evaluation.policy_evaluator import (
     PolicyEvaluator,
     make_fixed_price_policy,
     make_daily_discount_policy,

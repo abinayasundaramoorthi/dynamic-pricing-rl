@@ -14,38 +14,7 @@ from typing import List, Optional
 from pricing_env import PricingEnvConfig
 from pricing_env.demand_simulator import DemandConfig
 from pricing_env.reward import RewardConfig
-
-class DQNConfig:
-    """Configuration values for DQN."""
-
-    # -------------------------------
-    # Exploration Parameters
-    # -------------------------------
-
-    INITIAL_EPSILON = 1.0
-
-    MIN_EPSILON = 0.05
-
-    EPSILON_DECAY = 0.995
-
-    # -------------------------------
-    # DQN Hyperparameters
-    # (Future Integration)
-    # -------------------------------
-
-    GAMMA = 0.99
-
-    LEARNING_RATE = 0.001
-
-    BATCH_SIZE = 64
-
-    TARGET_UPDATE = 100
-
-    MEMORY_SIZE = 10000
-
-    RANDOM_SEED = 42
-
-    DEVICE = "auto"
+from utils.currency import USD_TO_INR_RATE
 
 """
 dqn_config.py
@@ -266,7 +235,7 @@ def get_default_dqn_config() -> DQNConfig:
     place a future upgrade (loading overrides from YAML/CLI) gets wired in.
 
     Uses the SAME environment configuration (100 inventory, 30-day
-    horizon, $200 base price) as the Q-Learning `get_final_training_config()`,
+    horizon, ₹19,078 base price (200 USD × 95.39)) as the Q-Learning `get_final_training_config()`,
     deliberately — this is what makes a later Q-Learning-vs-DQN comparison
     (Week 3/4 evaluation work) an apples-to-apples comparison of the
     learning algorithms, not a comparison confounded by different problem
@@ -276,7 +245,7 @@ def get_default_dqn_config() -> DQNConfig:
         env_config=PricingEnvConfig(
             initial_inventory=100,
             selling_horizon_days=30,
-            base_price=200.0,
+            base_price=round(200.0 * USD_TO_INR_RATE, 2),
             demand=DemandConfig(),
             reward=RewardConfig(),
         )
@@ -335,4 +304,3 @@ def get_optimized_dqn_config() -> DQNConfig:
         num_eval_episodes=config.num_eval_episodes,
         device=config.device,
     )
-print("Default DQN configuration:")
