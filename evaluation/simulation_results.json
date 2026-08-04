@@ -1,0 +1,1602 @@
+[
+  {
+    "episode_number": 0,
+    "policy_name": "Random",
+    "revenue": 7084.269045663999,
+    "reward": -6714.690954336,
+    "inventory_remaining": 71,
+    "selling_price": 369.40714517489215
+  },
+  {
+    "episode_number": 1,
+    "policy_name": "Random",
+    "revenue": 13538.654121504776,
+    "reward": 12654.71926253779,
+    "inventory_remaining": 0,
+    "selling_price": 140.28600715914567
+  },
+  {
+    "episode_number": 2,
+    "policy_name": "Random",
+    "revenue": 13371.888057093403,
+    "reward": 5630.525005185501,
+    "inventory_remaining": 41,
+    "selling_price": 239.64229408848522
+  },
+  {
+    "episode_number": 3,
+    "policy_name": "Random",
+    "revenue": 15412.860979686488,
+    "reward": 15301.965543190567,
+    "inventory_remaining": 0,
+    "selling_price": 163.5308041114992
+  },
+  {
+    "episode_number": 4,
+    "policy_name": "Random",
+    "revenue": 17027.316682322933,
+    "reward": 16082.484733081748,
+    "inventory_remaining": 6,
+    "selling_price": 187.43125851826042
+  },
+  {
+    "episode_number": 5,
+    "policy_name": "Random",
+    "revenue": 11669.91938472279,
+    "reward": 10155.634537877026,
+    "inventory_remaining": 0,
+    "selling_price": 123.25841049960066
+  },
+  {
+    "episode_number": 6,
+    "policy_name": "Random",
+    "revenue": 17098.738428763783,
+    "reward": 10769.07718051969,
+    "inventory_remaining": 34,
+    "selling_price": 279.383495100767
+  },
+  {
+    "episode_number": 7,
+    "policy_name": "Random",
+    "revenue": 8139.543163159591,
+    "reward": 4822.509190387648,
+    "inventory_remaining": 0,
+    "selling_price": 84.46576985778205
+  },
+  {
+    "episode_number": 8,
+    "policy_name": "Random",
+    "revenue": 11681.601490631976,
+    "reward": 9970.765322319432,
+    "inventory_remaining": 0,
+    "selling_price": 125.14682524228344
+  },
+  {
+    "episode_number": 9,
+    "policy_name": "Random",
+    "revenue": 15378.948706091454,
+    "reward": 15047.9485799398,
+    "inventory_remaining": 0,
+    "selling_price": 161.314915630684
+  },
+  {
+    "episode_number": 10,
+    "policy_name": "Random",
+    "revenue": 12010.769775869821,
+    "reward": 10346.479749755441,
+    "inventory_remaining": 0,
+    "selling_price": 154.31186864721317
+  },
+  {
+    "episode_number": 11,
+    "policy_name": "Random",
+    "revenue": 19883.18935318486,
+    "reward": 20210.049398057938,
+    "inventory_remaining": 0,
+    "selling_price": 207.6817230263487
+  },
+  {
+    "episode_number": 12,
+    "policy_name": "Random",
+    "revenue": 8829.99517774488,
+    "reward": -4994.0048222551195,
+    "inventory_remaining": 71,
+    "selling_price": 329.2444671812244
+  },
+  {
+    "episode_number": 13,
+    "policy_name": "Random",
+    "revenue": 15444.557677979981,
+    "reward": 10198.794882255434,
+    "inventory_remaining": 28,
+    "selling_price": 254.83983921440878
+  },
+  {
+    "episode_number": 14,
+    "policy_name": "Random",
+    "revenue": 15153.447319697494,
+    "reward": 14674.580775424804,
+    "inventory_remaining": 0,
+    "selling_price": 158.3587064989145
+  },
+  {
+    "episode_number": 15,
+    "policy_name": "Random",
+    "revenue": 7634.377876136198,
+    "reward": -5143.179356533594,
+    "inventory_remaining": 66,
+    "selling_price": 296.26348850842317
+  },
+  {
+    "episode_number": 16,
+    "policy_name": "Random",
+    "revenue": 12029.331409571332,
+    "reward": 10459.013072815795,
+    "inventory_remaining": 0,
+    "selling_price": 126.57861024211996
+  },
+  {
+    "episode_number": 17,
+    "policy_name": "Random",
+    "revenue": 12520.12781837964,
+    "reward": 3427.678516272872,
+    "inventory_remaining": 48,
+    "selling_price": 320.38163760520075
+  },
+  {
+    "episode_number": 18,
+    "policy_name": "Random",
+    "revenue": 14633.913639648912,
+    "reward": 6709.061109624378,
+    "inventory_remaining": 42,
+    "selling_price": 266.49739356408423
+  },
+  {
+    "episode_number": 19,
+    "policy_name": "Random",
+    "revenue": 14751.23401244217,
+    "reward": 14215.283810254772,
+    "inventory_remaining": 0,
+    "selling_price": 159.40957995004987
+  },
+  {
+    "episode_number": 20,
+    "policy_name": "Random",
+    "revenue": 13720.261538503912,
+    "reward": 13065.55303520616,
+    "inventory_remaining": 0,
+    "selling_price": 140.11099145446266
+  },
+  {
+    "episode_number": 21,
+    "policy_name": "Random",
+    "revenue": 19620.456566741334,
+    "reward": 15340.22902350613,
+    "inventory_remaining": 24,
+    "selling_price": 265.8490848032882
+  },
+  {
+    "episode_number": 22,
+    "policy_name": "Random",
+    "revenue": 10585.11666328803,
+    "reward": -1179.4833367119681,
+    "inventory_remaining": 61,
+    "selling_price": 323.0786586093461
+  },
+  {
+    "episode_number": 23,
+    "policy_name": "Random",
+    "revenue": 13123.91875404937,
+    "reward": 12185.567279612778,
+    "inventory_remaining": 0,
+    "selling_price": 140.47742598824473
+  },
+  {
+    "episode_number": 24,
+    "policy_name": "Random",
+    "revenue": 20131.220611253702,
+    "reward": 17428.79110460308,
+    "inventory_remaining": 16,
+    "selling_price": 258.4899629151339
+  },
+  {
+    "episode_number": 25,
+    "policy_name": "Random",
+    "revenue": 14618.530745287342,
+    "reward": 14252.434203015908,
+    "inventory_remaining": 0,
+    "selling_price": 150.34103877349455
+  },
+  {
+    "episode_number": 26,
+    "policy_name": "Random",
+    "revenue": 16989.008980340142,
+    "reward": 17095.506149157995,
+    "inventory_remaining": 0,
+    "selling_price": 176.3721755885671
+  },
+  {
+    "episode_number": 27,
+    "policy_name": "Random",
+    "revenue": 5156.281428953252,
+    "reward": -11484.318571046751,
+    "inventory_remaining": 85,
+    "selling_price": 464.045606922846
+  },
+  {
+    "episode_number": 28,
+    "policy_name": "Random",
+    "revenue": 18231.65076312522,
+    "reward": 18358.773140298516,
+    "inventory_remaining": 0,
+    "selling_price": 199.44851017938106
+  },
+  {
+    "episode_number": 29,
+    "policy_name": "Random",
+    "revenue": 19687.914288035885,
+    "reward": 20007.256117347028,
+    "inventory_remaining": 1,
+    "selling_price": 201.45106428768875
+  },
+  {
+    "episode_number": 30,
+    "policy_name": "Random",
+    "revenue": 6385.372415604572,
+    "reward": -7247.098497114176,
+    "inventory_remaining": 70,
+    "selling_price": 344.24853526227764
+  },
+  {
+    "episode_number": 31,
+    "policy_name": "Random",
+    "revenue": 18381.36249604418,
+    "reward": 18748.001874855094,
+    "inventory_remaining": 0,
+    "selling_price": 193.8339615993172
+  },
+  {
+    "episode_number": 32,
+    "policy_name": "Random",
+    "revenue": 14211.456642861405,
+    "reward": 13614.67561531362,
+    "inventory_remaining": 0,
+    "selling_price": 151.3261887095001
+  },
+  {
+    "episode_number": 33,
+    "policy_name": "Random",
+    "revenue": 19460.695436285434,
+    "reward": 19802.622026948757,
+    "inventory_remaining": 0,
+    "selling_price": 203.6007516954313
+  },
+  {
+    "episode_number": 34,
+    "policy_name": "Random",
+    "revenue": 14570.623084686304,
+    "reward": 8436.544161178812,
+    "inventory_remaining": 33,
+    "selling_price": 236.65327717583452
+  },
+  {
+    "episode_number": 35,
+    "policy_name": "Random",
+    "revenue": 6582.916679769031,
+    "reward": -8856.283320230968,
+    "inventory_remaining": 79,
+    "selling_price": 353.8001256248334
+  },
+  {
+    "episode_number": 36,
+    "policy_name": "Random",
+    "revenue": 14675.950335231759,
+    "reward": 9800.119345499646,
+    "inventory_remaining": 26,
+    "selling_price": 266.95098649223365
+  },
+  {
+    "episode_number": 37,
+    "policy_name": "Random",
+    "revenue": 14414.368499804688,
+    "reward": 13916.616465024632,
+    "inventory_remaining": 0,
+    "selling_price": 150.8491263095581
+  },
+  {
+    "episode_number": 38,
+    "policy_name": "Random",
+    "revenue": 18790.58198364672,
+    "reward": 17232.526639966916,
+    "inventory_remaining": 10,
+    "selling_price": 215.6318338413047
+  },
+  {
+    "episode_number": 39,
+    "policy_name": "Random",
+    "revenue": 20125.260546902482,
+    "reward": 20345.087160232142,
+    "inventory_remaining": 0,
+    "selling_price": 209.26190166466264
+  },
+  {
+    "episode_number": 40,
+    "policy_name": "Random",
+    "revenue": 15557.805985317988,
+    "reward": 15370.307223846903,
+    "inventory_remaining": 0,
+    "selling_price": 159.8841097396083
+  },
+  {
+    "episode_number": 41,
+    "policy_name": "Random",
+    "revenue": 12031.643410118437,
+    "reward": 10472.375671010152,
+    "inventory_remaining": 0,
+    "selling_price": 124.04319326006922
+  },
+  {
+    "episode_number": 42,
+    "policy_name": "Random",
+    "revenue": 17742.8939975947,
+    "reward": 17936.19317505493,
+    "inventory_remaining": 0,
+    "selling_price": 175.3906275965742
+  },
+  {
+    "episode_number": 43,
+    "policy_name": "Random",
+    "revenue": 13816.567065051182,
+    "reward": 12850.201198808125,
+    "inventory_remaining": 0,
+    "selling_price": 148.27051577260232
+  },
+  {
+    "episode_number": 44,
+    "policy_name": "Random",
+    "revenue": 4825.909560055564,
+    "reward": -11829.090439944433,
+    "inventory_remaining": 85,
+    "selling_price": 365.45430010934916
+  },
+  {
+    "episode_number": 45,
+    "policy_name": "Random",
+    "revenue": 16055.654835384943,
+    "reward": 15755.176591545292,
+    "inventory_remaining": 0,
+    "selling_price": 178.84797235531664
+  },
+  {
+    "episode_number": 46,
+    "policy_name": "Random",
+    "revenue": 16764.302055469187,
+    "reward": 16725.82753078383,
+    "inventory_remaining": 0,
+    "selling_price": 181.7970368306256
+  },
+  {
+    "episode_number": 47,
+    "policy_name": "Random",
+    "revenue": 17526.848637387422,
+    "reward": 14225.0036975964,
+    "inventory_remaining": 19,
+    "selling_price": 230.60296548983618
+  },
+  {
+    "episode_number": 48,
+    "policy_name": "Random",
+    "revenue": 16050.437758007134,
+    "reward": 14412.98630516944,
+    "inventory_remaining": 8,
+    "selling_price": 196.23423713764078
+  },
+  {
+    "episode_number": 49,
+    "policy_name": "Random",
+    "revenue": 15897.728276950904,
+    "reward": 15493.563436911527,
+    "inventory_remaining": 0,
+    "selling_price": 169.73720828158275
+  },
+  {
+    "episode_number": 50,
+    "policy_name": "Random",
+    "revenue": 10111.858526192484,
+    "reward": -2299.541473807514,
+    "inventory_remaining": 64,
+    "selling_price": 315.66963770400423
+  },
+  {
+    "episode_number": 51,
+    "policy_name": "Random",
+    "revenue": 14411.80365716716,
+    "reward": 13854.75589817205,
+    "inventory_remaining": 0,
+    "selling_price": 147.4269636443838
+  },
+  {
+    "episode_number": 52,
+    "policy_name": "Random",
+    "revenue": 11755.13568377441,
+    "reward": 1350.169009140829,
+    "inventory_remaining": 54,
+    "selling_price": 296.8209357750159
+  },
+  {
+    "episode_number": 53,
+    "policy_name": "Random",
+    "revenue": 16611.595229362018,
+    "reward": 11721.926854705005,
+    "inventory_remaining": 27,
+    "selling_price": 238.82035577388814
+  },
+  {
+    "episode_number": 54,
+    "policy_name": "Random",
+    "revenue": 12264.755147304213,
+    "reward": 10599.69977567925,
+    "inventory_remaining": 0,
+    "selling_price": 139.26937297202213
+  },
+  {
+    "episode_number": 55,
+    "policy_name": "Random",
+    "revenue": 19037.263583826265,
+    "reward": 19351.529047971217,
+    "inventory_remaining": 0,
+    "selling_price": 203.12935868565395
+  },
+  {
+    "episode_number": 56,
+    "policy_name": "Random",
+    "revenue": 11330.81380737516,
+    "reward": 9510.383009993831,
+    "inventory_remaining": 0,
+    "selling_price": 124.08812237550221
+  },
+  {
+    "episode_number": 57,
+    "policy_name": "Random",
+    "revenue": 16057.250193847747,
+    "reward": 10930.173123610175,
+    "inventory_remaining": 28,
+    "selling_price": 239.28173770839996
+  },
+  {
+    "episode_number": 58,
+    "policy_name": "Random",
+    "revenue": 6504.521758700535,
+    "reward": -7917.717569299464,
+    "inventory_remaining": 74,
+    "selling_price": 353.53498619649
+  },
+  {
+    "episode_number": 59,
+    "policy_name": "Random",
+    "revenue": 10961.143649913198,
+    "reward": 1028.6590297470739,
+    "inventory_remaining": 52,
+    "selling_price": 283.78379519075827
+  },
+  {
+    "episode_number": 60,
+    "policy_name": "Random",
+    "revenue": 11213.352705990714,
+    "reward": 9493.346640078786,
+    "inventory_remaining": 0,
+    "selling_price": 118.57807097915432
+  },
+  {
+    "episode_number": 61,
+    "policy_name": "Random",
+    "revenue": 14887.904889044035,
+    "reward": 14515.103435025967,
+    "inventory_remaining": 0,
+    "selling_price": 149.41337544562498
+  },
+  {
+    "episode_number": 62,
+    "policy_name": "Random",
+    "revenue": 10216.411215317316,
+    "reward": 8052.514439717173,
+    "inventory_remaining": 0,
+    "selling_price": 109.88882622329427
+  },
+  {
+    "episode_number": 63,
+    "policy_name": "Random",
+    "revenue": 13509.275244852528,
+    "reward": 3934.8085781858663,
+    "inventory_remaining": 50,
+    "selling_price": 284.338450849871
+  },
+  {
+    "episode_number": 64,
+    "policy_name": "Random",
+    "revenue": 13170.634708539064,
+    "reward": 12326.097188614689,
+    "inventory_remaining": 0,
+    "selling_price": 133.22623147891622
+  },
+  {
+    "episode_number": 65,
+    "policy_name": "Random",
+    "revenue": 18699.846048237483,
+    "reward": 18948.312384267174,
+    "inventory_remaining": 0,
+    "selling_price": 191.5797019021928
+  },
+  {
+    "episode_number": 66,
+    "policy_name": "Random",
+    "revenue": 18214.630601040208,
+    "reward": 17660.66895968126,
+    "inventory_remaining": 4,
+    "selling_price": 203.42983654887135
+  },
+  {
+    "episode_number": 67,
+    "policy_name": "Random",
+    "revenue": 9209.76296965171,
+    "reward": 6253.353680987823,
+    "inventory_remaining": 0,
+    "selling_price": 100.6011756547503
+  },
+  {
+    "episode_number": 68,
+    "policy_name": "Random",
+    "revenue": 6252.071407269574,
+    "reward": -8986.328592730428,
+    "inventory_remaining": 78,
+    "selling_price": 319.3901651068516
+  },
+  {
+    "episode_number": 69,
+    "policy_name": "Random",
+    "revenue": 10858.853538529249,
+    "reward": 8878.290938744889,
+    "inventory_remaining": 0,
+    "selling_price": 120.45031809091522
+  },
+  {
+    "episode_number": 70,
+    "policy_name": "Random",
+    "revenue": 17352.973124538417,
+    "reward": 17481.75031760711,
+    "inventory_remaining": 0,
+    "selling_price": 178.80101722774629
+  },
+  {
+    "episode_number": 71,
+    "policy_name": "Random",
+    "revenue": 15972.76483412768,
+    "reward": 15694.054097340326,
+    "inventory_remaining": 0,
+    "selling_price": 165.9097575484924
+  },
+  {
+    "episode_number": 72,
+    "policy_name": "Random",
+    "revenue": 13288.775092094282,
+    "reward": 3909.7750920942817,
+    "inventory_remaining": 49,
+    "selling_price": 285.40010795042116
+  },
+  {
+    "episode_number": 73,
+    "policy_name": "Random",
+    "revenue": 15478.456642623754,
+    "reward": 10469.419060102406,
+    "inventory_remaining": 27,
+    "selling_price": 243.45051067312727
+  },
+  {
+    "episode_number": 74,
+    "policy_name": "Random",
+    "revenue": 10051.451791238997,
+    "reward": -1706.3742525110047,
+    "inventory_remaining": 61,
+    "selling_price": 365.59583281450875
+  },
+  {
+    "episode_number": 75,
+    "policy_name": "Random",
+    "revenue": 17606.899988721983,
+    "reward": 16844.44377578377,
+    "inventory_remaining": 5,
+    "selling_price": 211.65961724770298
+  },
+  {
+    "episode_number": 76,
+    "policy_name": "Random",
+    "revenue": 13562.173213543883,
+    "reward": 12648.41122668735,
+    "inventory_remaining": 0,
+    "selling_price": 145.65528901130762
+  },
+  {
+    "episode_number": 77,
+    "policy_name": "Random",
+    "revenue": 9628.998944903347,
+    "reward": -3128.0677217633183,
+    "inventory_remaining": 66,
+    "selling_price": 379.38840442395906
+  },
+  {
+    "episode_number": 78,
+    "policy_name": "Random",
+    "revenue": 14094.669303834924,
+    "reward": 13514.31667852111,
+    "inventory_remaining": 0,
+    "selling_price": 144.2337645646226
+  },
+  {
+    "episode_number": 79,
+    "policy_name": "Random",
+    "revenue": 15239.389398426889,
+    "reward": 14870.330844331593,
+    "inventory_remaining": 0,
+    "selling_price": 156.97442282654418
+  },
+  {
+    "episode_number": 80,
+    "policy_name": "Random",
+    "revenue": 15209.652450042637,
+    "reward": 10116.931742178936,
+    "inventory_remaining": 28,
+    "selling_price": 273.46953674376044
+  },
+  {
+    "episode_number": 81,
+    "policy_name": "Random",
+    "revenue": 15873.625865763133,
+    "reward": 9781.52568936492,
+    "inventory_remaining": 33,
+    "selling_price": 248.23744924444966
+  },
+  {
+    "episode_number": 82,
+    "policy_name": "Random",
+    "revenue": 15940.91660631638,
+    "reward": 10634.736758246152,
+    "inventory_remaining": 29,
+    "selling_price": 242.26685372485346
+  },
+  {
+    "episode_number": 83,
+    "policy_name": "Random",
+    "revenue": 5664.712558898775,
+    "reward": -9549.287441101224,
+    "inventory_remaining": 78,
+    "selling_price": 372.490993007816
+  },
+  {
+    "episode_number": 84,
+    "policy_name": "Random",
+    "revenue": 17527.187234739336,
+    "reward": 17579.67364671911,
+    "inventory_remaining": 0,
+    "selling_price": 180.8919702394969
+  },
+  {
+    "episode_number": 85,
+    "policy_name": "Random",
+    "revenue": 14353.515571822774,
+    "reward": 5576.027396822774,
+    "inventory_remaining": 46,
+    "selling_price": 296.7498319593391
+  },
+  {
+    "episode_number": 86,
+    "policy_name": "Random",
+    "revenue": 16583.826623764046,
+    "reward": 16588.539217964553,
+    "inventory_remaining": 0,
+    "selling_price": 168.55425459420326
+  },
+  {
+    "episode_number": 87,
+    "policy_name": "Random",
+    "revenue": 13840.854496027603,
+    "reward": 10078.582105340938,
+    "inventory_remaining": 18,
+    "selling_price": 220.31093526695796
+  },
+  {
+    "episode_number": 88,
+    "policy_name": "Random",
+    "revenue": 16671.193898365193,
+    "reward": 10489.95371800751,
+    "inventory_remaining": 33,
+    "selling_price": 286.6703721907604
+  },
+  {
+    "episode_number": 89,
+    "policy_name": "Random",
+    "revenue": 11324.876322374026,
+    "reward": 9770.470662131342,
+    "inventory_remaining": 0,
+    "selling_price": 118.26751077176101
+  },
+  {
+    "episode_number": 90,
+    "policy_name": "Random",
+    "revenue": 18346.290582797526,
+    "reward": 15422.700153628148,
+    "inventory_remaining": 17,
+    "selling_price": 240.2491189061765
+  },
+  {
+    "episode_number": 91,
+    "policy_name": "Random",
+    "revenue": 13571.483580492488,
+    "reward": 12748.683697403043,
+    "inventory_remaining": 0,
+    "selling_price": 149.2539925187374
+  },
+  {
+    "episode_number": 92,
+    "policy_name": "Random",
+    "revenue": 14770.033402440466,
+    "reward": 14217.2421617981,
+    "inventory_remaining": 0,
+    "selling_price": 154.93487055465127
+  },
+  {
+    "episode_number": 93,
+    "policy_name": "Random",
+    "revenue": 16104.824430683373,
+    "reward": 15474.994905108697,
+    "inventory_remaining": 2,
+    "selling_price": 191.77145796363965
+  },
+  {
+    "episode_number": 94,
+    "policy_name": "Random",
+    "revenue": 9415.819935181637,
+    "reward": 6648.519178109469,
+    "inventory_remaining": 0,
+    "selling_price": 104.8860139197976
+  },
+  {
+    "episode_number": 95,
+    "policy_name": "Random",
+    "revenue": 16629.500760698807,
+    "reward": 16720.056375739565,
+    "inventory_remaining": 0,
+    "selling_price": 176.27658905761356
+  },
+  {
+    "episode_number": 96,
+    "policy_name": "Random",
+    "revenue": 15001.449132189526,
+    "reward": 14703.233806649305,
+    "inventory_remaining": 0,
+    "selling_price": 151.2307819401527
+  },
+  {
+    "episode_number": 97,
+    "policy_name": "Random",
+    "revenue": 15339.02413631998,
+    "reward": 14860.552402316847,
+    "inventory_remaining": 0,
+    "selling_price": 157.53443421662485
+  },
+  {
+    "episode_number": 98,
+    "policy_name": "Random",
+    "revenue": 13081.971346174154,
+    "reward": 4726.659269590309,
+    "inventory_remaining": 44,
+    "selling_price": 245.95745022859273
+  },
+  {
+    "episode_number": 99,
+    "policy_name": "Random",
+    "revenue": 17332.914658575937,
+    "reward": 14968.180743488294,
+    "inventory_remaining": 14,
+    "selling_price": 210.215936568571
+  },
+  {
+    "episode_number": 0,
+    "policy_name": "Hold Price",
+    "revenue": 19600.0,
+    "reward": 19773.0,
+    "inventory_remaining": 2,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 1,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20562.06666666667,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 2,
+    "policy_name": "Hold Price",
+    "revenue": 16600.0,
+    "reward": 13713.399999999998,
+    "inventory_remaining": 17,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 3,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20540.600000000002,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 4,
+    "policy_name": "Hold Price",
+    "revenue": 19800.0,
+    "reward": 20189.799999999996,
+    "inventory_remaining": 1,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 5,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20558.8,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 6,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20539.600000000002,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 7,
+    "policy_name": "Hold Price",
+    "revenue": 19200.0,
+    "reward": 18964.800000000003,
+    "inventory_remaining": 4,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 8,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20568.266666666663,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 9,
+    "policy_name": "Hold Price",
+    "revenue": 17600.0,
+    "reward": 15730.4,
+    "inventory_remaining": 12,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 10,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20549.199999999997,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 11,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20460.533333333336,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 12,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20553.933333333334,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 13,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20543.46666666667,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 14,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20566.533333333326,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 15,
+    "policy_name": "Hold Price",
+    "revenue": 19000.0,
+    "reward": 18579.2,
+    "inventory_remaining": 5,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 16,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20524.66666666667,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 17,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20579.8,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 18,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20517.533333333336,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 19,
+    "policy_name": "Hold Price",
+    "revenue": 19400.0,
+    "reward": 19356.733333333334,
+    "inventory_remaining": 3,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 20,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20527.73333333333,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 21,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20485.199999999997,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 22,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20551.399999999998,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 23,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20579.399999999998,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 24,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20493.4,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 25,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20589.26666666667,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 26,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20561.399999999998,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 27,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20574.466666666664,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 28,
+    "policy_name": "Hold Price",
+    "revenue": 19600.0,
+    "reward": 19779.666666666664,
+    "inventory_remaining": 2,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 29,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20568.199999999997,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 30,
+    "policy_name": "Hold Price",
+    "revenue": 19200.0,
+    "reward": 18962.53333333333,
+    "inventory_remaining": 4,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 31,
+    "policy_name": "Hold Price",
+    "revenue": 19200.0,
+    "reward": 18978.26666666667,
+    "inventory_remaining": 4,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 32,
+    "policy_name": "Hold Price",
+    "revenue": 19600.0,
+    "reward": 19747.399999999998,
+    "inventory_remaining": 2,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 33,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20492.666666666668,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 34,
+    "policy_name": "Hold Price",
+    "revenue": 18200.0,
+    "reward": 16938.6,
+    "inventory_remaining": 9,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 35,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20519.4,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 36,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20466.86666666667,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 37,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20583.0,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 38,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20513.733333333334,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 39,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20441.799999999996,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 40,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20540.86666666667,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 41,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20518.6,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 42,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20538.533333333333,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 43,
+    "policy_name": "Hold Price",
+    "revenue": 19200.0,
+    "reward": 18986.73333333333,
+    "inventory_remaining": 4,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 44,
+    "policy_name": "Hold Price",
+    "revenue": 19600.0,
+    "reward": 19756.0,
+    "inventory_remaining": 2,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 45,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20541.466666666664,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 46,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20553.066666666666,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 47,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20566.8,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 48,
+    "policy_name": "Hold Price",
+    "revenue": 19600.0,
+    "reward": 19774.4,
+    "inventory_remaining": 2,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 49,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20555.399999999998,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 50,
+    "policy_name": "Hold Price",
+    "revenue": 19800.0,
+    "reward": 20167.266666666666,
+    "inventory_remaining": 1,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 51,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20522.866666666665,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 52,
+    "policy_name": "Hold Price",
+    "revenue": 19800.0,
+    "reward": 20160.399999999998,
+    "inventory_remaining": 1,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 53,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20539.33333333334,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 54,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20524.266666666666,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 55,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20535.266666666666,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 56,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20512.73333333333,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 57,
+    "policy_name": "Hold Price",
+    "revenue": 17200.0,
+    "reward": 14922.0,
+    "inventory_remaining": 14,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 58,
+    "policy_name": "Hold Price",
+    "revenue": 18400.0,
+    "reward": 17349.6,
+    "inventory_remaining": 8,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 59,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20585.66666666666,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 60,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20554.86666666667,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 61,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20536.6,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 62,
+    "policy_name": "Hold Price",
+    "revenue": 19400.0,
+    "reward": 19351.599999999995,
+    "inventory_remaining": 3,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 63,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20554.466666666664,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 64,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20519.333333333332,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 65,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20490.799999999996,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 66,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20582.666666666668,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 67,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20516.866666666672,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 68,
+    "policy_name": "Hold Price",
+    "revenue": 18000.0,
+    "reward": 16523.400000000005,
+    "inventory_remaining": 10,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 69,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20491.399999999998,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 70,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20561.199999999997,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 71,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20557.2,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 72,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20577.4,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 73,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20589.4,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 74,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20534.066666666673,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 75,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20560.0,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 76,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20488.8,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 77,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20587.2,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 78,
+    "policy_name": "Hold Price",
+    "revenue": 18600.0,
+    "reward": 17758.399999999998,
+    "inventory_remaining": 7,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 79,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20533.266666666674,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 80,
+    "policy_name": "Hold Price",
+    "revenue": 18800.0,
+    "reward": 18167.93333333333,
+    "inventory_remaining": 6,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 81,
+    "policy_name": "Hold Price",
+    "revenue": 19000.0,
+    "reward": 18579.13333333333,
+    "inventory_remaining": 5,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 82,
+    "policy_name": "Hold Price",
+    "revenue": 19800.0,
+    "reward": 20177.8,
+    "inventory_remaining": 1,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 83,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20564.266666666663,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 84,
+    "policy_name": "Hold Price",
+    "revenue": 18200.0,
+    "reward": 16920.2,
+    "inventory_remaining": 9,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 85,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20513.533333333333,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 86,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20512.73333333333,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 87,
+    "policy_name": "Hold Price",
+    "revenue": 18800.0,
+    "reward": 18151.4,
+    "inventory_remaining": 6,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 88,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20471.533333333333,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 89,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20539.266666666663,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 90,
+    "policy_name": "Hold Price",
+    "revenue": 19600.0,
+    "reward": 19760.599999999995,
+    "inventory_remaining": 2,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 91,
+    "policy_name": "Hold Price",
+    "revenue": 17600.0,
+    "reward": 15748.13333333333,
+    "inventory_remaining": 12,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 92,
+    "policy_name": "Hold Price",
+    "revenue": 19000.0,
+    "reward": 18546.4,
+    "inventory_remaining": 5,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 93,
+    "policy_name": "Hold Price",
+    "revenue": 19400.0,
+    "reward": 19377.4,
+    "inventory_remaining": 3,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 94,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20505.8,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 95,
+    "policy_name": "Hold Price",
+    "revenue": 17400.0,
+    "reward": 15318.999999999998,
+    "inventory_remaining": 13,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 96,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20562.2,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 97,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20544.4,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 98,
+    "policy_name": "Hold Price",
+    "revenue": 18600.0,
+    "reward": 17763.4,
+    "inventory_remaining": 7,
+    "selling_price": 200.0
+  },
+  {
+    "episode_number": 99,
+    "policy_name": "Hold Price",
+    "revenue": 20000.0,
+    "reward": 20532.466666666667,
+    "inventory_remaining": 0,
+    "selling_price": 200.0
+  }
+]

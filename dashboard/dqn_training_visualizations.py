@@ -31,6 +31,7 @@ import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 
+csv_path = "evaluation/dqn_training_logs.csv"
 
 REQUIRED_COLUMNS = {
     "episode_number", "episode_reward", "average_reward", "revenue",
@@ -51,7 +52,7 @@ def load_training_log(csv_path: str) -> pd.DataFrame:
             f"Run utils/dqn_logger.py first to generate it."
         )
 
-    df = pd.read_csv("dqn_training_logs.csv")
+    df = pd.read_csv(csv_path)
 
     missing = REQUIRED_COLUMNS - set(df.columns)
     if missing:
