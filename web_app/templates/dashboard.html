@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="hero">
+
+    <h1>AI-Powered Dynamic Pricing</h1>
+
+    <p>
+        Reinforcement Learning for intelligent
+        hotel revenue management
+    </p>
+
+</section>
+
+
+<h2>Additional AI Features</h2>
+
+
+<div class="feature-grid">
+
+    <div class="feature-card">
+
+        <div class="emoji">👨‍💼</div>
+
+        <h2>
+            Human-in-the-Loop Learning
+        </h2>
+
+        <p>
+            Revenue managers can review,
+            accept, increase, or reduce
+            AI-generated prices.
+        </p>
+
+        <a class="button"
+           href="/human-feedback">
+
+            Open Feature
+
+        </a>
+
+    </div>
+
+
+    <div class="feature-card">
+
+        <div class="emoji">🏨</div>
+
+        <h2>
+            Digital Twin Market Simulator
+        </h2>
+
+        <p>
+            Test pricing strategies in
+            simulated market conditions.
+        </p>
+
+        <a class="button"
+           href="/digital-twin">
+
+            Open Feature
+
+        </a>
+
+    </div>
+
+</div>
+
+
+<h2>Overall Performance</h2>
+
+
+<div class="stats-grid">
+
+    <div class="stat-card">
+
+        <span>Total Revenue</span>
+
+        <strong>
+            ₹{{ total_revenue }}
+        </strong>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <span>Average Occupancy</span>
+
+        <strong>
+            {{ average_occupancy }}%
+        </strong>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <span>Best Strategy</span>
+
+        <strong>
+            {{ best_strategy }}
+        </strong>
+
+    </div>
+
+
+    <div class="stat-card">
+
+        <span>Manager Acceptance</span>
+
+        <strong>
+            {{ manager_acceptance }}%
+        </strong>
+
+    </div>
+
+</div>
+
+
+<div class="insight">
+
+    <h2>💡 Business Insight</h2>
+
+    <p>
+
+        The system combines
+        <b>Reinforcement Learning</b>,
+        human expertise, and
+        Digital Twin simulation to
+        support safer and more
+        explainable hotel pricing.
+
+    </p>
+
+</div>
+
+{% endblock %}
