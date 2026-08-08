@@ -1,0 +1,3 @@
+name,date,category,expected_impact,confidence,notes
+SAMPLE - Regional Tech Conference,2026-08-20,conference,1.30,0.7,"TEMPLATE ROW - replace with your real event calendar. expected_impact=1.30 means a 30% demand multiplier."
+SAMPLE - Local Cultural Festival,2026-09-05,festival,1.15,0.6,"TEMPLATE ROW - replace with your real event calendar. expected_impact=1.15 means a 15% demand multiplier."

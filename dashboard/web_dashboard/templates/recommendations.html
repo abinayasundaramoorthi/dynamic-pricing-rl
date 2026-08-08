@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}AI Recommendations{% endblock %}
+
+{% block content %}
+<div class="row mb-4 animate-fade-in">
+    <div class="col-12">
+        <h2 class="fw-bold">Explainable AI Insights</h2>
+        <p class="text-secondary">A real, live breakdown of the RL agent's pricing logic and confidence — nothing on this page is simulated or scripted.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Recommendation Panel -->
+    <div class="col-lg-8 animate-fade-in" style="animation-delay: 0.1s;">
+        <div class="card glass-card mb-4">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0">Live Recommendation Engine</h5>
+                <button class="btn btn-primary btn-sm rounded-pill px-3" id="refreshBtn">
+                    <i class="fas fa-sync-alt me-1"></i> Refresh Insights
+                </button>
+            </div>
+            <div class="card-body p-4" id="recommendationEngine">
+                <div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>
+            </div>
+        </div>
+
+        <!-- Pricing Timeline -->
+        <div class="card glass-card">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h6 class="fw-bold mb-0">Pricing Timeline (real multi-step rollout)</h6>
+            </div>
+            <div class="card-body p-4" id="pricingTimeline">
+                <div class="d-flex justify-content-center py-4"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- XAI Sidebar -->
+    <div class="col-lg-4 animate-fade-in" style="animation-delay: 0.2s;">
+        <!-- Confidence Gauge -->
+        <div class="card glass-card mb-4">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h5 class="fw-bold mb-0">Decision Confidence</h5>
+            </div>
+            <div class="card-body p-4 text-center">
+                <div class="position-relative d-inline-block">
+                    <canvas id="confidenceGauge" width="200" height="120"></canvas>
+                    <div class="position-absolute top-50 start-50 translate-middle mt-2">
+                        <h3 class="fw-bold mb-0" id="confidenceScoreText">—</h3>
+                        <span class="badge bg-secondary" id="confidenceLabelBadge">Loading</span>
+                    </div>
+                </div>
+                <p class="small text-secondary mt-3" id="confidenceCaption">
+                    Computed from the softmax margin between the chosen action's Q-value and the runner-up.
+                </p>
+            </div>
+        </div>
+
+        <!-- Feature Importance -->
+        <div class="card glass-card">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h5 class="fw-bold mb-0">Feature Importance (XAI)</h5>
+            </div>
+            <div class="card-body p-4" id="featureImportance">
+                <div class="d-flex justify-content-center py-3"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function renderConfidenceGauge(score) {
+    const ctx = document.getElementById('confidenceGauge').getContext('2d');
+    if (window._confidenceChart) window._confidenceChart.destroy();
+    window._confidenceChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: { datasets: [{ data: [score, 100 - score], backgroundColor: ['#10b981', '#e2e8f0'], circumference: 180, rotation: 270, borderWidth: 0, borderRadius: 10 }] },
+        options: { cutout: '80%', responsive: false, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+    });
+}
+
+function renderFeatureImportance(features) {
+    const el = document.getElementById('featureImportance');
+    if (!features || features.length === 0) {
+        el.innerHTML = '<p class="text-secondary small mb-0">No factors available.</p>';
+        return;
+    }
+    el.innerHTML = features.map(f => `
+        <div class="mb-3">
+            <div class="d-flex justify-content-between mb-1">
+                <span class="small fw-bold">${f.label}</span>
+                <span class="small text-secondary">${Math.round(f.weight * 100)}%</span>
+            </div>
+            <div class="progress" style="height: 8px;">
+                <div class="progress-bar ${f.direction === 'raises_price' ? 'bg-success' : (f.direction === 'lowers_price' ? 'bg-danger' : 'bg-secondary')}" style="width: ${Math.round(f.weight * 100)}%"></div>
+            </div>
+            <p class="small text-secondary mb-0 mt-1">${f.narrative}</p>
+        </div>
+    `).join('');
+}
+
+function loadRecommendation() {
+    const engineEl = document.getElementById('recommendationEngine');
+    engineEl.innerHTML = '<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>';
+
+    fetch('/api/recommendation?agent=dqn').then(r => r.json()).then(data => {
+        if (data.error) {
+            engineEl.innerHTML = `<div class="alert alert-warning mb-0">${data.error}</div>`;
+            document.getElementById('featureImportance').innerHTML = '';
+            return;
+        }
+        engineEl.innerHTML = `
+            <div class="row align-items-center mb-4">
+                <div class="col-md-4 text-center">
+                    <div class="mb-2 text-secondary small fw-bold">CURRENT / RECOMMENDED PRICE</div>
+                    <h1 class="fw-bold text-primary mb-0">&#8377;${data.developer.raw.info.price.toLocaleString()}</h1>
+                    <div class="fw-bold">${data.recommendation_summary}</div>
+                </div>
+                <div class="col-md-8">
+                    <div class="p-3 bg-light rounded-3 border">
+                        <h6 class="fw-bold mb-2"><i class="fas fa-comment-dots me-2"></i>AI Narrative</h6>
+                        <p class="mb-0 text-secondary" style="white-space: pre-line;">${data.human_readable}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        renderFeatureImportance(data.feature_importance);
+
+        if (data.confidence) {
+            const score = Math.round(data.confidence.score * 100);
+            document.getElementById('confidenceScoreText').textContent = score + '%';
+            const badge = document.getElementById('confidenceLabelBadge');
+            badge.textContent = data.confidence.label;
+            badge.className = 'badge ' + (score >= 65 ? 'bg-success' : (score >= 40 ? 'bg-warning' : 'bg-danger'));
+            renderConfidenceGauge(score);
+        }
+    });
+
+    fetch('/api/timeline?agent=dqn&steps=5').then(r => r.json()).then(data => {
+        const el = document.getElementById('pricingTimeline');
+        if (data.error || !Array.isArray(data) || data.length === 0) {
+            el.innerHTML = '<p class="text-secondary small mb-0">No timeline available.</p>';
+            return;
+        }
+        el.innerHTML = '<div class="timeline">' + data.map(step => `
+            <div class="timeline-item">
+                <div class="d-flex justify-content-between">
+                    <span class="fw-bold">Step ${step.step} &middot; ${Math.round(step.days_remaining)} days remaining</span>
+                    <span class="text-primary fw-bold">${step.recommendation_summary}</span>
+                </div>
+                <p class="small text-secondary mb-0">${step.confidence ? step.confidence.label + ' confidence' : ''}</p>
+            </div>
+        `).join('') + '</div>';
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    loadRecommendation();
+    document.getElementById('refreshBtn').addEventListener('click', loadRecommendation);
+});
+</script>
+{% endblock %}
