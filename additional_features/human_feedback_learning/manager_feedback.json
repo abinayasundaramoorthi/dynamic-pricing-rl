@@ -1,0 +1,12 @@
+[
+    {
+        "episode": 1,
+        "state": [
+            100,
+            30
+        ],
+        "ai_price": 250,
+        "manager_price": 240,
+        "feedback": "Modified"
+    }
+]

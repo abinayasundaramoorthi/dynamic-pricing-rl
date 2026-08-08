@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Dynamic Pricing RL</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static',
+                  filename='css/style.css') }}">
+
+</head>
+
+<body>
+
+<nav>
+
+    <div class="logo">
+        Dynamic Pricing RL
+    </div>
+
+    <div class="nav-links">
+
+        <a href="/">Dashboard</a>
+
+        <a href="/human-feedback">
+            Human-in-the-Loop
+        </a>
+
+        <a href="/digital-twin">
+            Digital Twin
+        </a>
+
+    </div>
+
+</nav>
+
+
+<main>
+
+    {% block content %}
+    {% endblock %}
+
+</main>
+
+
+<footer>
+
+    Dynamic Pricing RL Project |
+    AI Revenue Management
+
+</footer>
+
+</body>
+
+</html>
