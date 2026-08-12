@@ -1,3 +1,11 @@
+# additional_features + dashboard/web_dashboard — Flask Edition
+
+This is an update to the previous `additional_features` delivery. Two things changed, both requested directly:
+
+1. **No more Streamlit for the new dashboard.** The Advanced Revenue Management Dashboard (Feature 2) is now a **Flask** app with Bootstrap 5 + Chart.js, built from the design you liked (`revenue-ai-production.zip`).
+2. **No duplicate top-level dashboard folder.** The Flask app lives at `dashboard/web_dashboard/`, nested inside your existing `dashboard/` folder — not a second top-level `web_dashboard/` folder next to it.
+
+Your original `dashboard/dashboard_app.py` (Streamlit) and every other core project file are **byte-for-byte untouched**. This is purely additive.
 # Dynamic Pricing with Reinforcement Learning
 
 **Travel & Hospitality — Learning Optimal Pricing Policies for Perishable Inventory**
@@ -39,8 +47,9 @@ a business-facing Streamlit dashboard.
 - [Documentation Index](#documentation-index)
 - [Roadmap](#roadmap)
 
----
+## What to do with this zip
 
+Extract it into your project root. It will merge two things into your existing tree:
 ## Overview
 
 | | |
@@ -80,15 +89,51 @@ tabular Q-table       feedforward net + replay buffer + target network
 
 ## Installation
 
-```bash
-git clone <repo-url>
-cd dynamic-pricing-rl
-python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # macOS/Linux
-pip install -r requirements.txt
-```
+- `additional_features/` — **updates** the Feature 2 files in place (Streamlit code removed, replaced with pure-Python data functions); Features 1 and 3 (`explainable_ai_pricing/`, `demand_shock_detection/`) are unchanged from before, plus one new file (`sample_events.csv`).
+- `dashboard/web_dashboard/` — **brand new** folder, the Flask app itself.
 
+```
+your-project-root/
+├── (all existing files — untouched)
+│   └── dashboard/
+│       ├── dashboard_app.py            <- unchanged, still Streamlit, still yours
+│       ├── pricing_visualizations.py   <- unchanged
+│       ├── ...
+│       └── web_dashboard/              <- NEW: the Flask app
+│           ├── __init__.py
+│           ├── app.py
+│           ├── services.py
+│           ├── blueprints/
+│           │   ├── __init__.py
+│           │   ├── main.py             (HTML page routes)
+│           │   └── api.py              (JSON API routes — all real data)
+│           ├── templates/
+│           │   ├── base.html
+│           │   ├── index.html
+│           │   ├── dashboard.html
+│           │   ├── recommendations.html
+│           │   ├── events.html
+│           │   ├── simulator.html
+│           │   └── errors/{404,500}.html
+│           └── static/
+│               ├── css/style.css
+│               └── js/main.js
+│
+└── additional_features/
+    ├── __init__.py
+    ├── explainable_ai_pricing/          <- unchanged
+    ├── demand_shock_detection/          <- unchanged + sample_events.csv (new)
+    ├── advanced_dashboard/               <- REWRITTEN: pure data layer now, no Streamlit
+    │   ├── __init__.py
+    │   ├── kpi_components.py
+    │   ├── charts.py
+    │   └── export_utils.py
+    ├── deployment_smoke_test.py          <- updated: tests the Flask app too
+    └── tests/
+        ├── __init__.py
+        ├── test_explainable_ai_pricing.py
+        ├── test_demand_shock_detection.py
+        └── test_advanced_dashboard.py     <- rewritten for the new data layer + Flask
 **Verify the install:**
 
 ```bash
@@ -109,15 +154,19 @@ check (environment → agents → evaluation → dashboard), see
 python -m training.train_agent --agent q_learning --episodes 5000
 ```
 
-Trains a Q-table, saves it to `agents/checkpoints/q_learning_policy.pkl`,
-reloads it from disk, and evaluates the reloaded policy on held-out seeds.
+## New dependency
 
-### Deep Q-Network
+**Flask** is now a dependency (not in your original `requirements.txt`):
 
 ```bash
-python -m training.train_dqn --episodes 2000
+pip install flask
 ```
 
+Nothing else changed — still pandas/numpy/torch/gymnasium/matplotlib/streamlit (Streamlit stays because your *original* dashboard still uses it; the *new* dashboard does not).
+
+## Running the new Flask dashboard
+
+From your project root:
 Trains a feedforward network with experience replay and a target network,
 saves it to `agents/checkpoints/dqn_policy.pt`, reloads it, and evaluates
 it the same way.
@@ -140,9 +189,12 @@ results to `evaluation/results/<name>/`, plus a cross-experiment
 ### Full policy evaluation (all 5 strategies)
 
 ```bash
-python -m evaluation.evaluate_policies
+python -m dashboard.web_dashboard.app
 ```
 
+Then open **http://localhost:8080**. Override the port with the `PORT` environment variable if needed.
+
+Your original Streamlit dashboard still runs exactly as before:
 Runs 1,000 simulated booking seasons for each of DQN, Q-Learning, Random,
 Fixed Price, and Time-Based Discount, scores every policy against the
 project's business KPIs (revenue uplift, sell-through, spoilage), and
@@ -153,9 +205,10 @@ Add `--smoke-test` for a fast 20-episode pipeline check instead.
 ### Business dashboard
 
 ```bash
-streamlit run dashboard/dashboard_app.py
+python -m streamlit run dashboard/dashboard_app.py
 ```
 
+## What's real vs. what's a template
 Reads the evaluation outputs above and renders policy performance,
 pricing trends, and business-KPI scorecards. Run the evaluation command
 at least once first — the dashboard displays what's on disk, it doesn't
@@ -163,22 +216,21 @@ simulate anything itself.
 
 ### Programmatic usage
 
-```python
-from pricing_env import PricingEnvironment, PricingEnvConfig
+Every number in the Flask dashboard comes from one of three real sources — nothing is `Math.random()` or hardcoded:
 
-env = PricingEnvironment(PricingEnvConfig(render_mode="human"))
-obs, info = env.reset(seed=42)
+- **Evaluation CSVs** (`evaluation/evaluation_results.csv`, `evaluation/policy_evaluation_summary.csv`) — same files your original dashboard already reads.
+- **Your real trained agent checkpoints** (`agents/checkpoints/dqn_policy.pt`, `q_learning_policy.pkl`) — the "Live AI Recommendation" and "What-If Simulator" pages run actual rollouts through your real `PricingEnvironment` with these checkpoints.
+- **An event calendar file** (CSV or JSON) for the Demand Shock page. No real calendar of yours exists yet, so it falls back to `additional_features/demand_shock_detection/sample_events.csv` — **explicitly labeled as a sample** in the UI (a visible banner says so) and in the API response (`"is_sample_data": true`). Point the Events page at your own file's path to use real events instead.
 
-terminated = truncated = False
-total_reward = 0.0
-while not (terminated or truncated):
-    action = env.action_space.sample()  # replace with a trained agent's policy
-    obs, reward, terminated, truncated, info = env.step(action)
-    total_reward += reward
+One design change from the reference zip you liked: the "Competitor Price War" market-condition option was removed from the simulator, because this project's demand model has no competitor-pricing mechanism to simulate — adding it would have meant fabricating a feature that doesn't actually do anything. The two market conditions that remain ("High Demand" / "Low Demand") are real: they scale the project's actual `DemandConfig.base_daily_arrival_rate` parameter.
 
-print(f"Episode revenue: ${info['episode_revenue']:.2f}")
-```
+## Verification
 
+Both run clean against this exact codebase, including your real trained checkpoints:
+
+```bash
+python -m pytest additional_features/tests -q
+# 71 passed
 ## Results
 
 **Latest 1,000-episode-per-policy comparison** (see
@@ -364,7 +416,11 @@ open finding rather than concealed.
 
 ## Repository Structure
 
+python -m additional_features.deployment_smoke_test
+# RESULT: all checks passed — safe to deploy.
 ```
+
+The smoke test now also boots the real Flask app with a test client and hits every page route plus the core API routes (including a real `/api/simulate` POST), so a broken template or route is caught before you ever run `python -m dashboard.web_dashboard.app` by hand.
 dynamic-pricing-rl/
 │   .gitignore
 │   LICENSE

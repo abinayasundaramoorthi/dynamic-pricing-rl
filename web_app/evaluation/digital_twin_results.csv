@@ -1,0 +1,10 @@
+event,weather,competitor_price,demand,simulated_demand,rl_price,rooms_sold,occupancy,revenue,static_revenue,rule_revenue,winner,risk,recommendation,timestamp
+Normal Day,Sunny,200,80,88,220,88,88.0,19360,17600,17600,RL Pricing,LOW,Monitor competitors because the RL price is above the competitor price.,2026-08-07 21:38:03
+Normal Day,Sunny,100,80,88,220,88,88.0,19360,17600,8800,RL Pricing,LOW,Monitor competitors because the RL price is above the competitor price.,2026-08-07 21:38:39
+Festival,Sunny,100,100,138,280,100,100.0,28000,20000,10500,RL Pricing,LOW,Increase price because simulated demand is very high.,2026-08-07 21:40:04
+Normal Day,Sunny,200,80,79,220,79,79.0,17380,17600,17600,Static Pricing,LOW,LOW RISK: Demand and occupancy conditions are healthy.,2026-08-07 21:47:38
+Normal Day,Sunny,200,20,20,220,20,20.0,4400,4400,4400,Static Pricing,HIGH,HIGH RISK: Occupancy is very low. Consider reducing the RL price to attract more bookings.,2026-08-07 21:48:25
+Normal Day,Sunny,200,80,57,300,57,57.0,17100,17600,17600,Static Pricing,MEDIUM,MEDIUM RISK: Occupancy is moderate. Monitor demand and competitor prices before increasing the price.,2026-08-07 21:48:54
+Normal Day,Sunny,200,80,79,220,79,79.0,17380,17600,17600,Static Pricing,LOW,LOW RISK: Demand and occupancy conditions are healthy.,2026-08-08 11:12:18
+Normal Day,Sunny,200,20,14,300,14,14.0,4200,4400,4400,Static Pricing,HIGH,HIGH RISK: Occupancy is very low. Consider reducing the RL price to attract more bookings.,2026-08-08 11:12:32
+Normal Day,Sunny,200,80,79,220,79,79.0,17380,17600,17600,Static Pricing,LOW,LOW RISK: Demand and occupancy conditions are healthy.,2026-08-08 11:13:57

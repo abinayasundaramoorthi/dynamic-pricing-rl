@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}What-If Simulator{% endblock %}
+
+{% block content %}
+<div class="row mb-4 animate-fade-in">
+    <div class="col-12">
+        <h2 class="fw-bold">What-If Scenario Simulator</h2>
+        <p class="text-secondary">Runs a real episode of the project's <code>PricingEnvironment</code> with a real trained agent — every number below comes from an actual rollout, not a random placeholder.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Simulator Controls -->
+    <div class="col-lg-4 animate-fade-in" style="animation-delay: 0.1s;">
+        <div class="card glass-card">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h5 class="fw-bold mb-0">Scenario Configuration</h5>
+            </div>
+            <div class="card-body p-4">
+                <form id="simulatorForm">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">MARKET CONDITION</label>
+                        <select class="form-select" id="marketCondition">
+                            <option value="standard" selected>Standard Seasonal</option>
+                            <option value="high_demand">High Demand (+30% arrival rate)</option>
+                            <option value="low_demand">Low Demand (&minus;30% arrival rate)</option>
+                        </select>
+                        <div class="form-text">Scales the real <code>DemandConfig.base_daily_arrival_rate</code> parameter.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">STARTING INVENTORY</label>
+                        <input type="number" class="form-control" value="100" min="1" max="500" id="initialInventory">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">SELLING HORIZON (DAYS)</label>
+                        <input type="range" class="form-range" min="7" max="90" value="30" id="horizonRange">
+                        <div class="text-center fw-bold text-primary" id="horizonValue">30 Days</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold">AGENT SELECTION</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="agent" id="agentDQN" value="dqn" checked>
+                            <label class="form-check-label" for="agentDQN">Deep Q-Network (DQN)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="agent" id="agentQ" value="q_learning">
+                            <label class="form-check-label" for="agentQ">Tabular Q-Learning</label>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-primary w-100 py-2 fw-bold" id="runSim">
+                        <i class="fas fa-play me-2"></i> Run Simulation
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simulation Results -->
+    <div class="col-lg-8 animate-fade-in" style="animation-delay: 0.2s;">
+        <div class="card glass-card mb-4">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h5 class="fw-bold mb-0">Cumulative Revenue &amp; Price, Day by Day (Real Rollout)</h5>
+            </div>
+            <div class="card-body p-4">
+                <div id="simResultArea" style="height: 300px;">
+                    <div class="d-flex flex-column justify-content-center align-items-center h-100 text-secondary">
+                        <i class="fas fa-chart-area fa-3x mb-3 opacity-25"></i>
+                        <p>Configure a scenario and click "Run Simulation" to see the real rollout.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card glass-card">
+                    <div class="card-body p-4">
+                        <h6 class="text-secondary small fw-bold mb-2">FINAL REVENUE</h6>
+                        <h3 class="fw-bold mb-0" id="expRev">-</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card glass-card">
+                    <div class="card-body p-4">
+                        <h6 class="text-secondary small fw-bold mb-2">FINAL OCCUPANCY</h6>
+                        <h3 class="fw-bold mb-0" id="expOcc">-</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const horizonRange = document.getElementById('horizonRange');
+    const horizonValue = document.getElementById('horizonValue');
+    horizonRange.addEventListener('input', () => { horizonValue.textContent = horizonRange.value + ' Days'; });
+
+    document.getElementById('runSim').addEventListener('click', function () {
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Simulating...';
+        showLoading('simResultArea');
+
+        const payload = {
+            agent: document.querySelector('input[name="agent"]:checked').value,
+            initial_inventory: parseInt(document.getElementById('initialInventory').value, 10),
+            selling_horizon_days: parseInt(horizonRange.value, 10),
+            market_condition: document.getElementById('marketCondition').value,
+        };
+
+        fetch('/api/simulate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play me-2"></i> Run Simulation';
+
+                const area = document.getElementById('simResultArea');
+                if (data.error) {
+                    area.innerHTML = `<div class="alert alert-warning mb-0">${data.error}</div>`;
+                    document.getElementById('expRev').textContent = '-';
+                    document.getElementById('expOcc').textContent = '-';
+                    return;
+                }
+
+                document.getElementById('expRev').textContent = '\u20b9' + data.final_revenue.toLocaleString();
+                document.getElementById('expOcc').textContent = data.final_occupancy_pct.toFixed(1) + '%';
+
+                area.innerHTML = '<canvas id="simChart"></canvas>';
+                new Chart(document.getElementById('simChart'), {
+                    type: 'line',
+                    data: {
+                        labels: data.days.map(d => `Day ${d.day}`),
+                        datasets: [
+                            {
+                                label: 'Cumulative Revenue (\u20b9)',
+                                data: data.days.map(d => d.cumulative_revenue),
+                                borderColor: '#2563eb',
+                                backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                                yAxisID: 'y',
+                                fill: true,
+                                tension: 0.3,
+                            },
+                            {
+                                label: 'Price (\u20b9)',
+                                data: data.days.map(d => d.price),
+                                borderColor: '#f59e0b',
+                                yAxisID: 'y1',
+                                fill: false,
+                                borderDash: [4, 4],
+                                tension: 0.3,
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { type: 'linear', position: 'left', title: { display: true, text: 'Cumulative Revenue' } },
+                            y1: { type: 'linear', position: 'right', title: { display: true, text: 'Price' }, grid: { drawOnChartArea: false } },
+                        },
+                    },
+                });
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play me-2"></i> Run Simulation';
+                console.error(err);
+            });
+    });
+});
+</script>
+{% endblock %}
