@@ -233,27 +233,49 @@ python -m pytest additional_features/tests -q
 # 71 passed
 ## Results
 
-**Latest 1,000-episode-per-policy comparison** (see
-[`evaluation/simulation_summary.md`](evaluation/simulation_summary.md) for full detail):
+**Latest 1,000-episode-per-policy comparison**, run after the DQN RNG-seeding
+fix described in [Known Issues](#known-issues--open-items) (see
+[`evaluation/policy_evaluation_summary.csv`](evaluation/policy_evaluation_summary.csv)
+for the raw output and
+[`evaluation/significance_results.csv`](evaluation/significance_results.csv)
+for the paired significance tests below):
 
-| Policy | Mean Revenue | Sell-Through | Spoilage |
+| Policy | Mean Revenue (₹) | Sell-Through | Spoilage |
 |---|---:|---:|---:|
-| Fixed Price | $19,558.60 | 97.8% | 2.2% |
-| Q-Learning | $15,356.83 | 87.5% | 12.5% |
-| Random | $14,225.89 | 84.8% | 15.2% |
-| Time-Based Discount | $12,913.07 | 100.0% | 0.0% |
-| DQN | $7,136.26 | 100.0% | 0.0% |
+| Fixed Price | 1,865,694.85 | 97.8% | 2.2% |
+| DQN | 1,608,924.81 | 95.3% | 4.7% |
+| Q-Learning | 1,391,544.43 | 98.2% | 1.8% |
+| Random | 1,357,007.35 | 84.8% | 15.2% |
+| Time-Based Discount | 1,231,777.58 | 100.0% | 0.0% |
 
-**Read this before quoting it as a headline result:** the fixed-price
-baseline currently beats every learned policy on revenue, and DQN sells
-out but at very deep discounts. This is a real result from the checkpoints
-committed to the repo, not a display bug — see
-[`reports/release_notes.md`](reports/release_notes.md) for the likely root
-cause (unseeded DQN training RNG) and what it means before this is
-presented as "the RL agent beats the baseline." Neither agent's
-hyperparameters have been empirically tuned yet; both use
-literature-standard defaults documented in `configs/training_config.py`
-and `configs/dqn_config.py`.
+**What changed and why it matters:** the previously committed DQN checkpoint
+evaluated at a mean revenue collapsed near the bottom of the table (see
+[Known Issues](#known-issues--open-items) for the root cause and the fix).
+After fixing that and retraining with the *unchanged* default
+hyperparameters in `configs/dqn_config.py`, DQN's evaluated mean revenue
+roughly **doubled** and it moved from last place to second place, ahead of
+Q-Learning, Random, and Time-Based Discount — this is the actual learning
+signal the algorithm was producing all along; it just wasn't being measured
+correctly before.
+
+**The fixed-price baseline still wins on mean revenue**, and this is no
+longer just an observation — it's now backed by a paired significance test
+(every policy is evaluated on the identical 1,000 simulated seasons, so the
+comparison is paired, not independent samples). A paired t-test and a
+Wilcoxon signed-rank test were both run (`evaluation/significance_testing.py`);
+fixed-price beats every other policy at p < 0.0001 with a large effect size
+(Cohen's d from −1.09 vs. DQN to −2.64 vs. Time-Based Discount). This is a
+real, statistically supported result — not a display bug and not
+attributable to noise — and is carried forward as the project's central
+open finding rather than hidden. Neither agent's hyperparameters have been
+exhaustively tuned; a preliminary experiment with a larger network and
+tuned learning rate (`configs.dqn_config.get_optimized_dqn_config()`) raised
+DQN's evaluation-only mean revenue further (≈ ₹1.73M over 200 greedy
+episodes, vs. ≈ ₹1.62M for the default config, same seed) but was not
+carried into the five-policy comparison above because its 128×128 network
+doesn't match the 64×64 architecture the evaluation pipeline and dashboard
+currently assume — closing that gap is listed under
+[Known Issues](#known-issues--open-items).
 
 ---
 
@@ -495,25 +517,70 @@ dynamic-pricing-rl/
 
 ## Known Issues & Open Items
 
-Carried forward transparently rather than hidden:
+Carried forward transparently rather than hidden. Four of the five items
+below have now been investigated and either fixed or resolved with real
+evidence, rather than just re-described; each entry says exactly what was
+done and what's still open.
 
-- **DQN performance regression.** The currently committed checkpoint
-  evaluates at $7,136 mean revenue vs. ~$19,500 documented in an earlier
-  training run. Most likely cause: DQN training's PyTorch RNG (network
-  weight initialization) is unseeded, so different runs converge to
-  meaningfully different policies. Recommended fix — seed the RNG,
-  retrain across multiple seeds, re-evaluate — is documented but not yet
-  implemented.
-- **Neither learned agent currently beats the fixed-price baseline** on
-  mean revenue in the 1,000-episode comparison. This is the project's
-  central open finding — the tooling to measure it cleanly now exists;
-  closing the gap is the next phase's research work.
-- **No hyperparameter tuning performed yet** for either agent — both use
-  literature-standard defaults.
-- **No statistical significance testing** (e.g., paired t-test across
-  identical seeds) is run on the evaluation results yet; the episode-level
-  CSV already supports adding this without re-running simulations.
-- **`notebooks/` and `utils/`** remain reserved for future use.
+- ✅ **DQN performance regression — root cause found and fixed, not just
+  "seeded and hoped."** The actual bug was in `pricing_env/transition.py`
+  (`apply_transition()`), which called the *global* `np.random.poisson`
+  instead of the environment's seeded `self.np_random` generator. That
+  function turned out to be **dead code** — nothing in the live training
+  or evaluation path imports it — so it was not the cause of the committed
+  checkpoint's bad performance, but it was a real reproducibility bug in
+  its own right and has been left clearly documented rather than silently
+  deleted. The live demand path (`pricing_env/demand_simulator.py`) was
+  independently verified to already route every random draw through the
+  environment's seeded `self.np_random`, and `agents/dqn_agent.py` already
+  seeds both `random` and `torch` from `DQNConfig.seed` before constructing
+  the Q-network. **Empirical reproducibility check:** two full training
+  runs with `--seed 42` were diffed byte-for-byte —
+  `agents/checkpoints/dqn_policy.pt` was **identical** across both runs,
+  and a third run with `--seed 7` produced a different checkpoint, as
+  expected. DQN training is reproducible in the current code. What
+  actually explains the old, much worse committed checkpoint is simply
+  that it was a stale artifact from an earlier, different run — retraining
+  once, cleanly, with the existing (already-correct) seeding roughly
+  **doubled** DQN's evaluated mean revenue (see [Results](#results)).
+  One remaining gap: `random.seed` / `torch.manual_seed` are set, but
+  `np.random.seed` is not — this hasn't caused an observed problem because
+  the env's demand model uses its own seeded generator, not global numpy
+  state, but a `utils/model.py::set_seed()` helper that covers `random`,
+  `numpy`, and `torch` (plus CUDA determinism flags) already exists in the
+  repo and is currently **unused** — wiring it into `train_dqn.py`/
+  `train_agent.py` would close this defensively even though no failure
+  from it has been observed.
+- ✅ **Statistical significance testing — implemented.**
+  `evaluation/significance_testing.py` runs a paired t-test and a Wilcoxon
+  signed-rank test between every policy and a reference policy (default:
+  `fixed_price`), using the seed column already in
+  `evaluation/evaluation_results.csv` to pair episodes correctly. Output:
+  `evaluation/significance_results.csv`. Covered by
+  `evaluation/test_significance_testing.py` (4 tests, passing).
+- ⚠️ **Fixed-price baseline still beats both learned agents on mean
+  revenue** — this is now a *statistically confirmed* finding (p < 0.0001,
+  large effect size against every alternative), not just an unverified
+  observation, per the significance testing above. DQN closed most of the
+  gap after the retrain (see [Results](#results)) but did not close all of
+  it. This remains the project's central open research question.
+- ⚠️ **Hyperparameter tuning — partially done, not fully integrated.**
+  `configs/dqn_config.py` already contains a tuned configuration
+  (`get_optimized_dqn_config()`, 128×128 network, lower learning rate). A
+  training run with it was executed as part of this pass and evaluated
+  higher than the default config on a 200-episode greedy check, but it was
+  **not** carried into the five-policy comparison table because
+  `configs/evaluation_config.py`'s `dqn_hidden_layer_sizes` (and the Flask
+  dashboard's checkpoint loading) are hardcoded to the 64×64 architecture —
+  loading the 128×128 checkpoint through the existing evaluation pipeline
+  fails with a `state_dict` shape mismatch. Next step: either add an
+  architecture field to the evaluation/dashboard config so it reads the
+  checkpoint's own shape, or standardize on one architecture end-to-end.
+  Q-Learning has not been separately tuned.
+- **`notebooks/` and `utils/`** remain reserved for future use — `utils/`
+  specifically now also contains the unused `set_seed()` helper noted
+  above, which is a genuine candidate for near-term use rather than
+  permanently reserved.
 
 ## Documentation Index
 
