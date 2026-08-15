@@ -1,0 +1,18 @@
+Event,Weather,Competitor Price,Demand,RL Price,Rooms Sold,Revenue,Policy Winner,Risk Level
+Normal Day,Cloudy,195,80,204,70,14280,RL Pricing,LOW
+Holiday,Sunny,192,118,206,56,11536,RL Pricing,LOW
+Conference,Rainy,202,100,209,71,14839,RL Pricing,HIGH
+Normal Day,Cloudy,244,88,268,45,12060,RL Pricing,LOW
+Holiday,Rainy,232,53,222,47,10434,Rule-Based Pricing,HIGH
+Normal Day,Sunny,200,80,220,88,19360,RL Pricing,LOW
+Normal Day,Sunny,200,80,220,88,19360,RL Pricing,LOW
+Festival,Cloudy,200,80,250,100,25000,RL Pricing,LOW
+Festival,Cloudy,200,80,300,100,30000,RL Pricing,LOW
+Festival,Cloudy,200,80,1000,100,100000,RL Pricing,LOW
+Normal Day,Sunny,200,80,220,88,19360,RL Pricing,LOW
+Normal Day,Sunny,220,60,220,66,14520,Rule-Based Pricing,LOW
+Normal Day,Sunny,220,60,220,66,14520,Rule-Based Pricing,LOW
+Festival,Cloudy,250,60,220,75,16500,RL Pricing,LOW
+Normal Day,Sunny,200,80,220,88,19360,RL Pricing,LOW
+Normal Day,Sunny,200,80,220,88,19360,RL Pricing,LOW
+Normal Day,Sunny,200,80,220,88,19360,RL Pricing,LOW

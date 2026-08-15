@@ -1,0 +1,6 @@
+ai_price,manager_price,difference,decision,scenario,timestamp
+250.0,263.0,13.0,Increased,Normal Weekend,2026-08-07 21:37:02
+250.0,263.0,13.0,Increased,Normal Weekend,2026-08-07 21:37:04
+250.0,250.0,0.0,Accepted,Cloudy Day,2026-08-07 21:37:31
+250.0,238.0,-12.0,Reduced,rainy Day,2026-08-07 21:37:46
+250.0,238.0,-12.0,Reduced,rainy Day,2026-08-07 21:37:47
