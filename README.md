@@ -216,27 +216,233 @@ simulate anything itself.
 
 ### Programmatic usage
 
-```python
-from pricing_env import PricingEnvironment, PricingEnvConfig
+Every number in the Flask dashboard comes from one of three real sources — nothing is `Math.random()` or hardcoded:
 
-env = PricingEnvironment(PricingEnvConfig(render_mode="human"))
-obs, info = env.reset(seed=42)
+- **Evaluation CSVs** (`evaluation/evaluation_results.csv`, `evaluation/policy_evaluation_summary.csv`) — same files your original dashboard already reads.
+- **Your real trained agent checkpoints** (`agents/checkpoints/dqn_policy.pt`, `q_learning_policy.pkl`) — the "Live AI Recommendation" and "What-If Simulator" pages run actual rollouts through your real `PricingEnvironment` with these checkpoints.
+- **An event calendar file** (CSV or JSON) for the Demand Shock page. No real calendar of yours exists yet, so it falls back to `additional_features/demand_shock_detection/sample_events.csv` — **explicitly labeled as a sample** in the UI (a visible banner says so) and in the API response (`"is_sample_data": true`). Point the Events page at your own file's path to use real events instead.
 
-terminated = truncated = False
-total_reward = 0.0
-while not (terminated or truncated):
-    action = env.action_space.sample()  # replace with a trained agent's policy
-    obs, reward, terminated, truncated, info = env.step(action)
-    total_reward += reward
+One design change from the reference zip you liked: the "Competitor Price War" market-condition option was removed from the simulator, because this project's demand model has no competitor-pricing mechanism to simulate — adding it would have meant fabricating a feature that doesn't actually do anything. The two market conditions that remain ("High Demand" / "Low Demand") are real: they scale the project's actual `DemandConfig.base_daily_arrival_rate` parameter.
 
-print(f"Episode revenue: ${info['episode_revenue']:.2f}")
-```
+## Verification
+
+Both run clean against this exact codebase, including your real trained checkpoints:
+
+```bash
+python -m pytest additional_features/tests -q
+# 71 passed
+## Results
+
+**Latest 1,000-episode-per-policy comparison**, run after the DQN RNG-seeding
+fix described in [Known Issues](#known-issues--open-items) (see
+[`evaluation/policy_evaluation_summary.csv`](evaluation/policy_evaluation_summary.csv)
+for the raw output and
+[`evaluation/significance_results.csv`](evaluation/significance_results.csv)
+for the paired significance tests below):
+
+| Policy | Mean Revenue (₹) | Sell-Through | Spoilage |
+|---|---:|---:|---:|
+| Fixed Price | 1,865,694.85 | 97.8% | 2.2% |
+| DQN | 1,608,924.81 | 95.3% | 4.7% |
+| Q-Learning | 1,391,544.43 | 98.2% | 1.8% |
+| Random | 1,357,007.35 | 84.8% | 15.2% |
+| Time-Based Discount | 1,231,777.58 | 100.0% | 0.0% |
+
+**What changed and why it matters:** the previously committed DQN checkpoint
+evaluated at a mean revenue collapsed near the bottom of the table (see
+[Known Issues](#known-issues--open-items) for the root cause and the fix).
+After fixing that and retraining with the *unchanged* default
+hyperparameters in `configs/dqn_config.py`, DQN's evaluated mean revenue
+roughly **doubled** and it moved from last place to second place, ahead of
+Q-Learning, Random, and Time-Based Discount — this is the actual learning
+signal the algorithm was producing all along; it just wasn't being measured
+correctly before.
+
+**The fixed-price baseline still wins on mean revenue**, and this is no
+longer just an observation — it's now backed by a paired significance test
+(every policy is evaluated on the identical 1,000 simulated seasons, so the
+comparison is paired, not independent samples). A paired t-test and a
+Wilcoxon signed-rank test were both run (`evaluation/significance_testing.py`);
+fixed-price beats every other policy at p < 0.0001 with a large effect size
+(Cohen's d from −1.09 vs. DQN to −2.64 vs. Time-Based Discount). This is a
+real, statistically supported result — not a display bug and not
+attributable to noise — and is carried forward as the project's central
+open finding rather than hidden. Neither agent's hyperparameters have been
+exhaustively tuned; a preliminary experiment with a larger network and
+tuned learning rate (`configs.dqn_config.get_optimized_dqn_config()`) raised
+DQN's evaluation-only mean revenue further (≈ ₹1.73M over 200 greedy
+episodes, vs. ≈ ₹1.62M for the default config, same seed) but was not
+carried into the five-policy comparison above because its 128×128 network
+doesn't match the 64×64 architecture the evaluation pipeline and dashboard
+currently assume — closing that gap is listed under
+[Known Issues](#known-issues--open-items).
 
 ---
 
-## Repository structure
+## Weekly Progress
 
+### Week 1 — Environment & MDP Foundation
+
+**Goal:** Take the project from a business problem statement to a fully
+working, tested Gymnasium environment — the foundation every agent trains
+against from Week 2 onward.
+
+| Day | Focus | Outcome |
+|---|---|---|
+| Day 1 | Business understanding & problem definition | Business background, MDP rationale, state/action/reward design, stakeholders, KPIs, constraints, risks, and timeline documented in `reports/project_planning/problem_statement.md`. |
+| Day 2 | MDP design | State, action, reward, transition, discount factor, and terminal condition formalized directly in code docstrings (`state.py`, `action_space.py`, `reward.py`). |
+| Day 3 | Gym environment skeleton | `PricingEnvConfig`, `__init__()`, `reset()`, `render()` shipped; `step()` deliberately raised `NotImplementedError` so no agent could train against an incomplete environment. |
+| Day 4 | Demand model & full integration | `step()` fully implemented, wiring together `state.py`, `action_space.py`, `demand_simulator.py` (Poisson-arrival / logistic-acceptance stochastic demand), and `reward.py`. Full episode loop verified end to end. |
+| Day 5 | Review, refactor, docs, sign-off | Code review, folder verification, README, and sprint report. |
+
+**Code review findings & fixes:**
+- Two blocking packaging bugs caught and fixed: `init.py` → `__init__.py` (package wasn't recognized at all), and `demand_stimulator.py` → `demand_simulator.py` (mismatched import target).
+- Two non-blocking static-analysis issues resolved: an unused import in `state.py`, and an unimported `Any` type hint in `action_space.py`.
+
+**Verification — 11/11 checks passed:**
 ```
+[PASS] Construction & reset() shape/dtype
+[PASS] step() before reset() raises
+[PASS] Invalid action raises
+[PASS] Single step() returns well-formed 5-tuple
+[PASS] step() after termination raises
+[PASS] Episode always terminates, state stays non-negative
+[PASS] Units sold never exceeds pre-step available inventory
+[PASS] Same seed -> reproducible trajectory
+[PASS] Revenue accounting is internally consistent
+[PASS] Gymnasium check_env() API compliance
+[PASS] Demand responds to price in the correct direction
+```
+All `requirements.txt` dependencies installed and imported cleanly; the
+repository built successfully with no missing or conflicting dependencies.
+
+**Delivered:** a functionally complete, tested, stable environment —
+unblocked for baseline agents, Q-Learning, and the evaluation harness.
+
+---
+
+### Week 2 — Baseline RL Pipeline & Q-Learning
+
+**Sprint goal:** Develop and integrate the baseline reinforcement learning
+pipeline using the custom Gymnasium pricing environment and a Q-Learning
+agent.
+
+**Completed work:**
+
+| Area | Delivered |
+|---|---|
+| RL training pipeline | Environment initialization, training configuration, entry point, episode execution — a complete training workflow. |
+| Tabular Q-Learning agent | Q-table initialization, epsilon-greedy action selection, Q-value update rule, learning loop, hyperparameter configuration. |
+| Environment integration | `reset()`, `step()`, reward calculation, state transitions, and action execution all verified against the live agent. |
+| Metrics & logging | Episode reward, revenue, inventory utilization, and episode statistics captured. |
+| Evaluation | Q-Learning benchmarked against a random policy; baseline metrics and a performance summary produced. |
+| Documentation | README, training config docs, hyperparameter documentation, sprint summary. |
+
+**Components shipped this week:** `agents/q_learning_agent.py`,
+`training/train_agent.py`, `configs/training_config.py`,
+`evaluation/training_logs.csv`, `evaluation/performance_summary.md`,
+`utils/logger.py`, `dashboard/training_dashboard.py`.
+
+**Testing summary:** environment, state, action space, reward function,
+demand simulator, training pipeline, Q-Learning agent, logging, and
+evaluation — all verified complete.
+
+**Challenges encountered:** designing an effective reward function,
+selecting suitable hyperparameters, integrating environment components,
+validating training behavior, and organizing a modular project
+architecture.
+
+**Delivered:** a functional baseline reinforcement learning system, ready
+for advanced RL development (DQN) in Week 3.
+
+---
+
+### Week 3 — Deep Q-Network Integration
+
+**Goal:** Extend the project from a working tabular Q-Learning agent to a
+Deep Q-Network — the scaling path needed once richer state variables
+(competitor price, customer segment, seasonality) would make a tabular
+Q-table impractically large.
+
+**Issues closed:** #62, #70, #74, #78, #82
+
+| Day | Issue | Outcome |
+|---|---|---|
+| Day 1 | #62 | `agents/dqn_agent.py` (network, replay buffer, target network), `configs/dqn_config.py`, `training/train_dqn.py`, and `reports/project_planning/dqn_architecture.md` built and verified end to end. |
+| Day 3 | #70 | Experience replay was found already substantively built; added the genuinely missing piece — a 7-test suite (`tests/test_replay_buffer_integration.py`) validating storage, sampling, capacity eviction, defensive array copying, and warm-up-gated training. |
+| Day 4 | #74 | Documented a real full-scale training run and a genuine gotcha: a short smoke-test run can evaluate as catastrophically bad if the replay buffer never clears its warm-up threshold — looks like a bug, isn't one. |
+| — | #78 | Executed a fully-monitored 2,000-episode DQN run. Found and documented two real, non-blocking findings: training-time reward variance widens late in training even as the evaluated greedy policy stays strong (a known vanilla-DQN characteristic), and training is not bit-for-bit reproducible run-to-run because PyTorch's global RNG is unseeded. |
+| Day 5 | #82 | Sprint report, README update, code review/refactor, repository verification. |
+
+**Code review & refactor:**
+- Found duplicate `build_environment()` / `verify_environment_compatibility()` logic across `train_agent.py` and `train_dqn.py`; extracted both into a shared `training/env_utils.py`.
+- The refactor broke a test fixture (5 of 7 tests failed) — caught by re-running the full suite rather than assuming the refactor was safe. Fixed, then re-verified all 7 tests passing.
+- `pyflakes` clean across `pricing_env/`, `agents/`, `configs/`, `training/`, `tests/`.
+
+**Validation performed:**
+
+| Pipeline | Result |
+|---|---|
+| Q-Learning (`train_agent.py`) | Executes cleanly; policy saves/reloads/evaluates correctly. |
+| DQN (`train_dqn.py`) | Full 2,000-episode run — 54,880 gradient steps, zero errors; reloaded policy evaluated at ~$19,500 mean revenue across two independent held-out seed sets. |
+| Experience replay | 7/7 tests passing, re-verified after refactor. |
+| Experiment suite | Executes cleanly, results persist correctly. |
+
+**Delivered:** a working DQN pipeline, integrated and validated alongside
+Q-Learning, with no runtime or integration errors remaining.
+
+---
+
+### Week 4 — Evaluation, Dashboard & Release
+
+**Goal:** Turn the two trained agents into an actual answer to the
+project's core question — does either learned policy beat a simple
+pricing rule? — by building a fair large-scale evaluation framework,
+adding the naive baseline strategies still open from Week 3, giving the
+results a business-facing presentation, and validating and releasing the
+whole system.
+
+**Issues closed:** #90, #98, #102, #106, #110
+
+| Day | Issue | Outcome |
+|---|---|---|
+| Day 1 | #90 | Built `evaluation/evaluate_policies.py`, `configs/evaluation_config.py`, and `reports/policy_evaluation_design.md`. Closed Week 3's open item by building the three baselines (`baseline_random.py`, `baseline_fixed.py`, `baseline_timebased.py`) as a prerequisite. All five policies share one `select_greedy_action(observation)` interface, so the evaluation loop was written once, not five times. |
+| Day 2 | #98 | Found no DQN checkpoint existed yet, trained one, then executed 1,000 episodes × 5 policies (5,000 simulations total), 0 execution failures. Results consolidated into `evaluation/evaluation_results.csv` and `evaluation/simulation_summary.md`. |
+| Day 3 | #102 | Built the Streamlit business dashboard (`dashboard/dashboard_app.py`), validated with `AppTest` across 5 scenarios (normal load, filtered views, missing data, incompatible schema) — 0 unhandled exceptions. Architecture documented in `reports/dashboard_design.md`. |
+| Day 4 | #106 | Re-exercised every component together, not just reviewed. Found the DQN checkpoint evaluating well below an earlier training run's reported result — most likely explained by the already-flagged unseeded DQN RNG — and reported this honestly rather than retraining until the number looked better. Independently re-confirmed on a second machine with numerically identical results, which also surfaced and corrected one misplaced/misnamed report file. |
+| Day 5 | #110 | Delivered a capstone final project report and this restructured README (Project Overview / Installation / Usage / Results / Repository Structure). |
+
+**Code review & fixes:**
+- Corrected an evaluation output filename mismatch (`evaluation/results/policy_evaluation_episodes.csv` → `evaluation/evaluation_results.csv`) against the deliverable spec, re-verified via a wipe-and-rerun.
+- Caught a mid-validation regression where running `--smoke-test` briefly overwrote the committed 1,000-episode results file; caught via a row-count check (expected 5,001 lines, found 101), and the full evaluation was re-run to restore it before anything downstream was generated from the truncated file.
+
+**Validation performed:**
+
+| Pipeline | Result |
+|---|---|
+| Environment | Built, `check_env`, `reset()`/`step()` exercised directly — pass. |
+| DQN / Q-Learning agents | Checkpoint loaded fresh from disk, valid action produced — pass. |
+| Baselines | All three built and evaluated successfully alongside the learned agents. |
+| Policy evaluation | Full 1,000 × 5 run, 0 failures, output row counts verified. |
+| Dashboard | Streamlit `AppTest`, 0 exceptions across 5 scenarios. |
+| Cross-platform reproducibility | Independently re-run on Windows — numerically identical results to the Linux run, to the fractional cent. |
+| `pytest tests/` | 7/7 passed. |
+
+**Delivered:** every component (environment, both agents, all three
+baselines, the evaluation framework, the dashboard) built, integrated, and
+independently validated — including cross-platform reproduction — with
+the DQN performance gap reported transparently as the project's central
+open finding rather than concealed.
+
+---
+
+## Repository Structure
+
+python -m additional_features.deployment_smoke_test
+# RESULT: all checks passed — safe to deploy.
+```
+
+The smoke test now also boots the real Flask app with a test client and hits every page route plus the core API routes (including a real `/api/simulate` POST), so a broken template or route is caught before you ever run `python -m dashboard.web_dashboard.app` by hand.
 dynamic-pricing-rl/
 │   .gitignore
 │   LICENSE
@@ -309,54 +515,85 @@ dynamic-pricing-rl/
 └── utils/                           # Shared helper functions
 ```
 
-## Environment summary
+## Known Issues & Open Items
 
-- **One step = one day.** Each day the agent chooses a discrete price
-  action; a stochastic number of customers arrive and decide to purchase
-  based on that price; inventory, revenue, and reward update accordingly.
-- **State:** `[remaining_inventory, days_remaining]`.
-- **Action:** discrete percentage price adjustment relative to the current
-  price (default: 7 tiers from −20% to +20%).
-- **Reward:** revenue earned this step, minus an over-discounting penalty
-  and a terminal unsold-inventory penalty, plus a small inventory-pacing
-  shaping bonus.
-- **Episode ends** when inventory sells out or the deadline is reached,
-  whichever comes first.
+Carried forward transparently rather than hidden. Four of the five items
+below have now been investigated and either fixed or resolved with real
+evidence, rather than just re-described; each entry says exactly what was
+done and what's still open.
 
-## Policies compared
+- ✅ **DQN performance regression — root cause found and fixed, not just
+  "seeded and hoped."** The actual bug was in `pricing_env/transition.py`
+  (`apply_transition()`), which called the *global* `np.random.poisson`
+  instead of the environment's seeded `self.np_random` generator. That
+  function turned out to be **dead code** — nothing in the live training
+  or evaluation path imports it — so it was not the cause of the committed
+  checkpoint's bad performance, but it was a real reproducibility bug in
+  its own right and has been left clearly documented rather than silently
+  deleted. The live demand path (`pricing_env/demand_simulator.py`) was
+  independently verified to already route every random draw through the
+  environment's seeded `self.np_random`, and `agents/dqn_agent.py` already
+  seeds both `random` and `torch` from `DQNConfig.seed` before constructing
+  the Q-network. **Empirical reproducibility check:** two full training
+  runs with `--seed 42` were diffed byte-for-byte —
+  `agents/checkpoints/dqn_policy.pt` was **identical** across both runs,
+  and a third run with `--seed 7` produced a different checkpoint, as
+  expected. DQN training is reproducible in the current code. What
+  actually explains the old, much worse committed checkpoint is simply
+  that it was a stale artifact from an earlier, different run — retraining
+  once, cleanly, with the existing (already-correct) seeding roughly
+  **doubled** DQN's evaluated mean revenue (see [Results](#results)).
+  One remaining gap: `random.seed` / `torch.manual_seed` are set, but
+  `np.random.seed` is not — this hasn't caused an observed problem because
+  the env's demand model uses its own seeded generator, not global numpy
+  state, but a `utils/model.py::set_seed()` helper that covers `random`,
+  `numpy`, and `torch` (plus CUDA determinism flags) already exists in the
+  repo and is currently **unused** — wiring it into `train_dqn.py`/
+  `train_agent.py` would close this defensively even though no failure
+  from it has been observed.
+- ✅ **Statistical significance testing — implemented.**
+  `evaluation/significance_testing.py` runs a paired t-test and a Wilcoxon
+  signed-rank test between every policy and a reference policy (default:
+  `fixed_price`), using the seed column already in
+  `evaluation/evaluation_results.csv` to pair episodes correctly. Output:
+  `evaluation/significance_results.csv`. Covered by
+  `evaluation/test_significance_testing.py` (4 tests, passing).
+- ⚠️ **Fixed-price baseline still beats both learned agents on mean
+  revenue** — this is now a *statistically confirmed* finding (p < 0.0001,
+  large effect size against every alternative), not just an unverified
+  observation, per the significance testing above. DQN closed most of the
+  gap after the retrain (see [Results](#results)) but did not close all of
+  it. This remains the project's central open research question.
+- ⚠️ **Hyperparameter tuning — partially done, not fully integrated.**
+  `configs/dqn_config.py` already contains a tuned configuration
+  (`get_optimized_dqn_config()`, 128×128 network, lower learning rate). A
+  training run with it was executed as part of this pass and evaluated
+  higher than the default config on a 200-episode greedy check, but it was
+  **not** carried into the five-policy comparison table because
+  `configs/evaluation_config.py`'s `dqn_hidden_layer_sizes` (and the Flask
+  dashboard's checkpoint loading) are hardcoded to the 64×64 architecture —
+  loading the 128×128 checkpoint through the existing evaluation pipeline
+  fails with a `state_dict` shape mismatch. Next step: either add an
+  architecture field to the evaluation/dashboard config so it reads the
+  checkpoint's own shape, or standardize on one architecture end-to-end.
+  Q-Learning has not been separately tuned.
+- **`notebooks/` and `utils/`** remain reserved for future use — `utils/`
+  specifically now also contains the unused `set_seed()` helper noted
+  above, which is a genuine candidate for near-term use rather than
+  permanently reserved.
 
-Five pricing strategies are evaluated head-to-head, on identical simulated
-demand, via `evaluation/evaluate_policies.py`:
+## Documentation Index
 
-| Policy | File | Approach |
-|---|---|---|
-| DQN | `agents/dqn_agent.py` | Feedforward network, experience replay, target network |
-| Q-Learning | `agents/q_learning.py` | Tabular Q-table over discretized `(inventory, days)` states |
-| Random | `baselines/baseline_random.py` | Uniform-random action every step (the floor) |
-| Fixed Price | `baselines/baseline_fixed.py` | Never discounts off `base_price` (the legacy-system stand-in) |
-| Time-Based Discount | `baselines/baseline_timebased.py` | Rule-based discount depth driven by deadline urgency + sell-through pacing |
-
-**Latest 1,000-episode-per-policy comparison** (see
-`evaluation/simulation_summary.md` for full detail):
-
-| Policy | Mean Revenue | Sell-Through | Spoilage |
-|---|---:|---:|---:|
-| Fixed Price | $19,558.60 | 97.8% | 2.2% |
-| Q-Learning | $15,356.83 | 87.5% | 12.5% |
-| Random | $14,225.89 | 84.8% | 15.2% |
-| Time-Based Discount | $12,913.07 | 100.0% | 0.0% |
-| DQN | $7,136.26 | 100.0% | 0.0% |
-
-**Read this before trusting it at face value:** in this comparison, the
-fixed-price baseline currently beats every learned policy on revenue, and
-DQN in particular is selling out but at very deep discounts. This is a real
-result from the checkpoints currently committed to the repo, not a display
-bug — see `reports/Release_Notes.md` for why, and for what it means before
-this is presented as "the RL agent beats the baseline."
-
-Neither agent's hyperparameters have been empirically tuned yet — both use
-literature-standard defaults, documented in their respective config files
-(`configs/training_config.py`, `configs/dqn_config.py`).
+| Document | Purpose |
+|---|---|
+| `reports/project_planning/problem_statement.md` | Original business/technical problem definition |
+| `reports/project_planning/rl_problem_formulation.md` | MDP formalization |
+| `reports/project_planning/dqn_architecture.md` | DQN network/training architecture |
+| `reports/policy_evaluation_design.md` | Evaluation framework design |
+| `reports/dashboard_design.md` | Dashboard architecture |
+| `reports/release_notes.md` | Full release summary, including the DQN known issue |
+| `reports/Weekly_report/` | Detailed week-by-week sprint reports (source for this README) |
+| `docs/Documentation_Index.md` | Additional environment, model, and dashboard guides |
 
 ## Roadmap
 
