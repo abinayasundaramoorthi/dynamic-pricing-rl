@@ -1,0 +1,251 @@
+{% extends "legacy/base.html" %}
+
+{% block content %}
+
+<!-- =========================================================
+     STATISTICS
+========================================================= -->
+
+<div class="stat-card">
+    <span>Acceptance Rate</span>
+    <strong id="acceptanceRate">
+        {{ statistics.acceptance_rate }}%
+    </strong>
+</div>
+
+<div class="stat-card">
+    <span>Average Adjustment</span>
+    <strong id="averageDifference">
+        ₹{{ statistics.average_difference }}
+    </strong>
+</div>
+
+<div class="stat-card">
+    <span>Total Decisions</span>
+    <strong id="totalDecisions">
+        {{ statistics.total_decisions }}
+    </strong>
+</div>
+
+<div class="stat-card">
+    <span>Accepted</span>
+    <strong class="green" id="accepted">
+        {{ statistics.accepted }}
+    </strong>
+</div>
+
+<div class="stat-card">
+    <span>Increased</span>
+    <strong id="increased">
+        {{ statistics.increased }}
+    </strong>
+</div>
+
+<div class="stat-card">
+    <span>Reduced</span>
+    <strong class="red" id="reduced">
+        {{ statistics.reduced }}
+    </strong>
+</div>
+
+
+<!-- =========================================================
+     MANAGER FEEDBACK
+========================================================= -->
+
+<h2>Give Manager Feedback</h2>
+
+<label for="scenario">
+    Scenario
+</label>
+
+<input
+    id="scenario"
+    type="text"
+    placeholder="Example: Festival Weekend"
+>
+
+
+<label for="aiPrice">
+    AI Recommended Price
+</label>
+
+<input
+    id="aiPrice"
+    type="number"
+    value="250"
+    min="1"
+>
+
+
+<label for="managerPrice">
+    Manager Price
+</label>
+
+<input
+    id="managerPrice"
+    type="number"
+    value="250"
+    min="1"
+>
+
+
+<!-- =========================================================
+     FEEDBACK BUTTONS
+========================================================= -->
+
+<div class="button-row">
+
+    <!-- Accept = immediately save -->
+    <button
+        type="button"
+        class="accept"
+        onclick="submitFeedback('accept')">
+
+        ✓ Accept AI Price
+
+    </button>
+
+
+   <button
+    class="increase"
+    onclick="submitFeedback('increase')">
+
+    ↑ Increase 5%
+
+</button>
+
+<button
+    class="reduce"
+    onclick="submitFeedback('reduce')">
+
+    ↓ Reduce 5%
+
+</button>
+
+</div>
+
+
+<!-- Custom price = whatever manager entered -->
+<button
+    type="button"
+    class="button full"
+    onclick="submitFeedback('custom')">
+
+    Submit Custom Manager Price
+
+</button>
+
+
+<!-- Message -->
+<div
+    id="feedbackMessage"
+    class="message">
+</div>
+
+
+<!-- =========================================================
+     HOW SYSTEM LEARNS
+========================================================= -->
+
+<h2>
+    🧠 How the system learns
+</h2>
+
+<p>
+    The AI first generates a recommended
+    price. The manager reviews the price
+    and provides feedback.
+</p>
+
+<p>
+    The system stores the difference
+    between the AI price and manager price.
+</p>
+
+<p>
+    Over time, these decisions help
+    identify the manager's pricing
+    preference.
+</p>
+
+
+<!-- =========================================================
+     FEEDBACK HISTORY
+========================================================= -->
+
+<h2>
+    Manager Feedback History
+</h2>
+
+<table>
+
+    <thead>
+
+        <tr>
+            <th>AI Price</th>
+            <th>Manager Price</th>
+            <th>Difference</th>
+            <th>Decision</th>
+            <th>Scenario</th>
+            <th>Timestamp</th>
+        </tr>
+
+    </thead>
+
+
+    <!-- IMPORTANT:
+         JavaScript uses this ID -->
+    <tbody id="feedbackTable">
+
+        {% for record in records %}
+
+        <tr>
+
+            <td>
+                ₹{{ record.ai_price }}
+            </td>
+
+            <td>
+                ₹{{ record.manager_price }}
+            </td>
+
+            <td>
+                ₹{{ record.difference }}
+            </td>
+
+            <td>
+
+                <span class="badge">
+                    {{ record.decision }}
+                </span>
+
+            </td>
+
+            <td>
+                {{ record.scenario }}
+            </td>
+
+            <td>
+                {{ record.timestamp }}
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </tbody>
+
+</table>
+
+
+<!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
+
+<script src="{{ url_for(
+    'legacy.static',
+    filename='js/human_feedback.js'
+) }}"></script>
+
+{% endblock %}

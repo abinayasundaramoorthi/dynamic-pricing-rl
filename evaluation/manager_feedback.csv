@@ -1,0 +1,49 @@
+Scenario,AI Price,Manager Price,Decision,Timestamp
+Festival Weekend,260,275,Increased,2026-08-07 19:58:41.608278
+Normal Weekday,230,225,Reduced,2026-08-07 19:58:41.609068
+Heavy Rain,240,210,Reduced,2026-08-07 19:58:41.609294
+Conference Event,280,280,Accepted,2026-08-07 19:58:41.609487
+Holiday Season,300,315,Increased,2026-08-07 19:58:41.609704
+250.0,238.0,-12.0,Reduced,Rainy Season,2026-08-07 20:37:07
+230.0,219.0,-11.0,Reduced,Normal Weekday,2026-08-07 20:38:06
+280.0,280.0,0.0,Accepted,Conference Event,2026-08-07 20:38:30
+280.0,280.0,0.0,Accepted,Conference Event,2026-08-07 20:38:32
+260.0,273.0,13.0,Increased,Festival Weekend,2026-08-07 20:39:09
+250.0,250.0,0.0,Accepted,Manual Scenario,2026-08-07 20:41:19
+230.0,242.0,12.0,Increased,Rainy Day,2026-08-07 20:42:05
+250.0,263.0,13.0,Increased,Festival,2026-08-07 20:53:34
+250.0,263.0,13.0,Increased,Festival,2026-08-07 20:53:44
+250.0,263.0,13.0,Increased,Festival,2026-08-07 20:53:47
+250.0,263.0,13.0,Increased,Festival,2026-08-07 20:53:48
+250.0,238.0,-12.0,Reduced,Festival,2026-08-07 20:53:50
+250.0,263.0,13.0,Increased,Holiday,2026-08-07 20:54:03
+250.0,250.0,0.0,Accepted,Holiday,2026-08-07 20:54:07
+250.0,275.0,25.0,Increased,Holiday,2026-08-07 20:54:20
+250.0,275.0,25.0,Increased,Holiday,2026-08-07 20:54:23
+250.0,275.0,25.0,Increased,Holiday,2026-08-07 20:54:23
+250.0,275.0,25.0,Increased,Holiday,2026-08-07 20:54:24
+250.0,275.0,25.0,Increased,Holiday,2026-08-07 20:54:24
+250.0,275.0,25.0,Increased,Holiday,2026-08-07 20:54:24
+250.0,263.0,13.0,Increased,Holiday,2026-08-07 20:54:25
+250.0,238.0,-12.0,Reduced,Holiday,2026-08-07 20:54:25
+250.0,250.0,0.0,Accepted,Holiday,2026-08-07 20:54:26
+250.0,250.0,0.0,Accepted,Holiday,2026-08-07 20:54:26
+250.0,250.0,0.0,Accepted,Rainy Day,2026-08-07 21:01:17
+250.0,263.0,13.0,Increased,Weekend,2026-08-07 21:01:45
+250.0,250.0,0.0,Accepted,Manual Scenario,2026-08-07 21:08:45
+250.0,263.0,13.0,Increased,Festival F,2026-08-07 21:09:09
+246.0,258.0,12.0,Increased,Normal Weekend,2026-08-07 21:16:30
+246.0,234.0,-12.0,Reduced,Normal Weekend,2026-08-07 21:16:35
+246.0,258.0,12.0,Increased,Normal Weekend,2026-08-07 21:16:37
+246.0,258.0,12.0,Increased,Normal Weekend,2026-08-07 21:16:39
+250.0,263.0,13.0,Increased,Weekend,2026-08-07 21:27:03
+250.0,263.0,13.0,Increased,Weekend,2026-08-07 21:27:09
+250.0,238.0,-12.0,Reduced,Weekend,2026-08-07 21:27:12
+250.0,250.0,0.0,Accepted,Weekend,2026-08-07 21:27:14
+250.0,250.0,0.0,Accepted,Weekend,2026-08-07 21:27:16
+250.0,250.0,0.0,Accepted,Weekend,2026-08-07 21:27:23
+250.0,263.0,13.0,Increased,Weekend,2026-08-07 21:27:25
+250.0,263.0,13.0,Increased,Weekend,2026-08-07 21:27:26
+250.0,263.0,13.0,Increased,Weekend,2026-08-07 21:27:27
+250.0,238.0,-12.0,Reduced,Weekend,2026-08-07 21:27:27
+250.0,238.0,-12.0,Reduced,Weekend,2026-08-07 21:27:29

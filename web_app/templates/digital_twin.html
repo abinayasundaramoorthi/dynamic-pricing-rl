@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>🏨 Digital Twin Market Simulator</h1>
+
+<p>
+    Test pricing strategies safely
+    before applying them to real customers.
+</p>
+
+
+<!-- =====================================================
+     SIMULATOR
+====================================================== -->
+
+<div class="interactive-card">
+
+    <h2>🎮 Run Market Simulation</h2>
+
+
+    <label>
+        Event
+    </label>
+
+    <select id="event">
+
+        <option>Normal Day</option>
+
+        <option>Festival</option>
+
+        <option>Holiday</option>
+
+        <option>Conference</option>
+
+    </select>
+
+
+    <label>
+        Weather
+    </label>
+
+    <select id="weather">
+
+        <option>Sunny</option>
+
+        <option>Cloudy</option>
+
+        <option>Rainy</option>
+
+    </select>
+
+
+    <label>
+        Competitor Price
+    </label>
+
+    <input
+        id="competitorPrice"
+        type="number"
+        value="200"
+    >
+
+
+    <label>
+        Expected Demand
+    </label>
+
+    <input
+        id="demand"
+        type="number"
+        value="80"
+    >
+
+
+    <label>
+        RL Recommended Price
+    </label>
+
+    <input
+        id="rlPrice"
+        type="number"
+        value="220"
+    >
+
+
+    <button
+        class="button full"
+        onclick="runSimulation()">
+
+        🚀 Run Simulation
+
+    </button>
+
+</div>
+
+
+<!-- =====================================================
+     RESULT
+====================================================== -->
+
+<div
+    id="simulationResult"
+    class="simulation-result hidden">
+
+    <h2>
+        📊 Simulation Result
+    </h2>
+
+
+    <div class="result-grid">
+
+        <div>
+            <span>Simulated Demand</span>
+
+            <strong id="resultDemand">
+                -
+            </strong>
+        </div>
+
+
+        <div>
+            <span>Rooms Sold</span>
+
+            <strong id="resultRooms">
+                -
+            </strong>
+        </div>
+
+
+        <div>
+            <span>RL Revenue</span>
+
+            <strong id="resultRevenue">
+                -
+            </strong>
+        </div>
+
+
+        <div>
+            <span>Winner</span>
+
+            <strong id="resultWinner">
+                -
+            </strong>
+        </div>
+
+
+        <div>
+            <span>Risk</span>
+
+            <strong id="resultRisk">
+                -
+            </strong>
+        </div>
+
+    </div>
+
+
+    <h3>
+        Strategy Comparison
+    </h3>
+
+
+    <div id="strategyComparison">
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     HISTORY
+====================================================== -->
+
+<h2>Simulation History</h2>
+
+
+<table>
+
+    <thead>
+
+        <tr>
+
+            <th>Event</th>
+
+            <th>Weather</th>
+
+            <th>Competitor</th>
+
+            <th>Demand</th>
+
+            <th>RL Price</th>
+
+            <th>Rooms Sold</th>
+
+            <th>Revenue</th>
+
+            <th>Winner</th>
+
+            <th>Risk</th>
+
+        </tr>
+
+    </thead>
+
+
+    <tbody id="simulationTable">
+
+        {% for row in simulations %}
+
+        <tr>
+
+            <td>
+                {{ row["Event"] }}
+            </td>
+
+            <td>
+                {{ row["Weather"] }}
+            </td>
+
+            <td>
+                ₹{{ row["Competitor Price"] }}
+            </td>
+
+            <td>
+                {{ row["Demand"] }}
+            </td>
+
+            <td>
+                ₹{{ row["RL Price"] }}
+            </td>
+
+            <td>
+                {{ row["Rooms Sold"] }}
+            </td>
+
+            <td>
+                ₹{{ row["Revenue"] }}
+            </td>
+
+            <td>
+                <span class="badge">
+                    {{ row["Winner"] }}
+                </span>
+            </td>
+
+            <td>
+                <span class="risk">
+                    {{ row["Risk"] }}
+                </span>
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </tbody>
+
+</table>
+
+
+<script src="{{ url_for(
+    'static',
+    filename='js/digital_twin.js'
+) }}"></script>
+
+{% endblock %}

@@ -1,0 +1,15 @@
+{
+  "experiment_name": "short_run",
+  "description": "5x fewer episodes than baseline \u2014 establishes how much of baseline's performance is achievable within a much smaller training budget.",
+  "num_episodes": 200,
+  "learning_rate": 0.1,
+  "discount_factor": 0.99,
+  "exploration_rate": 1.0,
+  "seed": 42,
+  "mean_reward": 1045321.4836590445,
+  "std_reward": 650229.2439187632,
+  "mean_revenue": 1348866.3294012886,
+  "std_revenue": 308692.10824159643,
+  "mean_reward_last_n": 1068771.0285642785,
+  "mean_revenue_last_n": 1341630.4317772016
+}

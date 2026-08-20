@@ -1,0 +1,179 @@
+{% extends "legacy/base.html" %}
+
+{% block content %}
+
+<div class="hero">
+
+    <h1>
+        AI-Powered Dynamic Pricing
+    </h1>
+
+    <p>
+        Reinforcement Learning for
+        intelligent hotel revenue management
+    </p>
+
+</div>
+
+
+<!-- ======================================================
+     FEATURES
+======================================================= -->
+
+<h2>
+    Additional AI Features
+</h2>
+
+
+<div class="feature-grid">
+
+
+    <!-- HUMAN FEEDBACK -->
+
+    <div class="feature-card">
+
+        <div class="icon">
+            👨‍💼
+        </div>
+
+        <h2>
+            Human-in-the-Loop Learning
+        </h2>
+
+        <p>
+            Allows revenue managers to review,
+            accept, increase, or reduce
+            AI-generated hotel prices.
+        </p>
+
+        <a
+            href="/legacy/human-feedback"
+            class="button"
+        >
+            View Feature
+        </a>
+
+    </div>
+
+
+    <!-- DIGITAL TWIN -->
+
+    <div class="feature-card">
+
+        <div class="icon">
+            🏨
+        </div>
+
+        <h2>
+            Digital Twin Market Simulator
+        </h2>
+
+        <p>
+            Simulates festivals, holidays,
+            conferences, weather and competitor
+            pricing before applying decisions
+            to real customers.
+        </p>
+
+        <a
+            href="/legacy/digital-twin"
+            class="button"
+        >
+            View Feature
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- ======================================================
+     PERFORMANCE
+======================================================= -->
+
+<h2>
+    Overall Performance
+</h2>
+
+
+<div class="metric-grid">
+
+
+    <div class="metric-card">
+
+        <span>
+            Total Revenue
+        </span>
+
+        <strong>
+            ₹{{ "{:,.0f}".format(twin.total_revenue) }}
+        </strong>
+
+    </div>
+
+
+    <div class="metric-card">
+
+        <span>
+            Average Occupancy
+        </span>
+
+        <strong>
+            {{ "{:.1f}".format(twin.average_occupancy) }}%
+        </strong>
+
+    </div>
+
+
+    <div class="metric-card">
+
+        <span>
+            Best Strategy
+        </span>
+
+        <strong>
+            {{ twin.best_strategy }}
+        </strong>
+
+    </div>
+
+
+    <div class="metric-card">
+
+        <span>
+            Manager Acceptance
+        </span>
+
+        <strong>
+            {{ "{:.1f}".format(feedback.acceptance_rate) }}%
+        </strong>
+
+    </div>
+
+</div>
+
+
+<!-- ======================================================
+     BUSINESS INSIGHT
+======================================================= -->
+
+<div class="insight">
+
+    <h2>
+        💡 Business Insight
+    </h2>
+
+    <p>
+
+        The system combines
+        <strong>Reinforcement Learning</strong>
+        with human expertise and simulated
+        market testing to support safer and
+        more explainable hotel pricing decisions.
+
+    </p>
+
+</div>
+
+
+{% endblock %}

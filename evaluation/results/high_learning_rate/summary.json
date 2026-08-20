@@ -1,0 +1,15 @@
+{
+  "experiment_name": "high_learning_rate",
+  "description": "5x the baseline learning rate \u2014 tests whether faster value updates speed convergence or destabilize training.",
+  "num_episodes": 1000,
+  "learning_rate": 0.5,
+  "discount_factor": 0.99,
+  "exploration_rate": 1.0,
+  "seed": 42,
+  "mean_reward": 1070525.3191371667,
+  "std_reward": 658561.4460066982,
+  "mean_revenue": 1366536.8514896974,
+  "std_revenue": 320612.7970531501,
+  "mean_reward_last_n": 1230048.6993498437,
+  "mean_revenue_last_n": 1461336.0260666523
+}

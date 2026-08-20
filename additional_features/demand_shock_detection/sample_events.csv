@@ -1,0 +1,10 @@
+name,date,category,expected_impact,confidence,notes
+Republic Day,2026-01-26,national_holiday,1.20,0.75,"National holiday (26 Jan, fixed every year). Long-weekend leisure travel and family visits lift short-haul demand across India."
+Holi,2026-03-04,festival,1.25,0.7,"Festival of Colours (main day; Holika Dahan the evening before). Major domestic travel and family-gathering demand, especially in North India (Mathura/Vrindavan region sees the largest local spikes)."
+Independence Day,2026-08-15,national_holiday,1.15,0.75,"National holiday (15 Aug, fixed every year). Long-weekend leisure travel uptick, generally milder than Republic Day/Diwali."
+Ganesh Chaturthi,2026-09-14,festival,1.30,0.65,"10-day festival (Chaturthi to Anant Chaturdashi/Visarjan ~23-25 Sep). Especially strong demand impact in Maharashtra, Karnataka, Andhra Pradesh, and Telangana."
+Navratri (start),2026-10-11,festival,1.20,0.6,"9-night festival leading into Dussehra. Strong regional demand lift, particularly Gujarat (Garba/Dandiya) and northern India."
+Dussehra,2026-10-20,festival,1.25,0.65,"Marks the end of Navratri; a major public holiday across India with elevated short-haul and pilgrimage travel demand."
+Diwali (Lakshmi Puja),2026-11-08,festival,1.40,0.8,"The single biggest demand driver in the Indian festive calendar (5-day festival, main Lakshmi Puja day). Historically the strongest seasonal uplift for travel, hospitality, and retail in India — plan for the largest price/inventory adjustments of the year."
+Bhai Dooj,2026-11-10,festival,1.10,0.55,"Closes the Diwali festival period; smaller, family-visit-driven demand tail after the main Diwali spike."
+Christmas & New Year Peak,2026-12-25,holiday_season,1.30,0.7,"Christmas through New Year's Eve (25 Dec - 1 Jan) is peak leisure travel season in India, especially for hill stations, beach destinations (Goa), and international-style New Year events in metro cities."

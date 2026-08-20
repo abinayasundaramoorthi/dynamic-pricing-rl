@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Performance Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4 animate-fade-in">
+    <div class="col-md-6">
+        <h2 class="fw-bold">Revenue Performance</h2>
+        <p class="text-secondary">Comparing RL strategies against baselines, from real evaluation runs.</p>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <a href="/api/export/episodes.csv" class="btn btn-outline-dark shadow-sm">
+            <i class="fas fa-download me-1"></i> Export Episodes CSV
+        </a>
+        <a href="/api/export/summary.json" class="btn btn-primary ms-2 shadow-sm">
+            <i class="fas fa-download me-1"></i> Export Summary JSON
+        </a>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Revenue Trend -->
+    <div class="col-lg-8 animate-fade-in" style="animation-delay: 0.1s;">
+        <div class="card glass-card">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h5 class="fw-bold mb-0">Revenue Trend vs. Baseline (DQN vs Fixed Price)</h5>
+            </div>
+            <div class="card-body p-4">
+                <div style="height: 350px;"><canvas id="revenueChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Scorecard -->
+    <div class="col-lg-4 animate-fade-in" style="animation-delay: 0.2s;">
+        <div class="card glass-card h-100">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h5 class="fw-bold mb-0">DQN Policy KPI Scorecard</h5>
+            </div>
+            <div class="card-body p-4" id="kpiScorecard">
+                <div class="d-flex justify-content-center py-4"><div class="spinner-border text-primary"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Occupancy Trend -->
+    <div class="col-md-6 animate-fade-in" style="animation-delay: 0.3s;">
+        <div class="card glass-card">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h5 class="fw-bold mb-0">Occupancy (Sell-Through) Trend Across Simulated Seasons</h5>
+            </div>
+            <div class="card-body p-4">
+                <div style="height: 250px;"><canvas id="occupancyChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pricing Distribution -->
+    <div class="col-md-6 animate-fade-in" style="animation-delay: 0.4s;">
+        <div class="card glass-card">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h5 class="fw-bold mb-0">DQN Pricing Action Distribution</h5>
+            </div>
+            <div class="card-body p-4">
+                <div style="height: 250px;"><canvas id="pricingDistChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // --- Revenue trend (real per-episode data) ---
+    fetch('/api/charts/revenue_trend?policies=dqn,fixed_price')
+        .then(r => r.json())
+        .then(series => {
+            new Chart(document.getElementById('revenueChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: series.labels,
+                    datasets: series.datasets.map(d => ({
+                        label: d.label, data: d.data, borderColor: d.color,
+                        backgroundColor: d.color + '1a', fill: d.policy === 'dqn', tension: 0.3,
+                        borderDash: d.policy === 'dqn' ? [] : [5, 5],
+                    }))
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
+            });
+        });
+
+    // --- KPI Scorecard (real summary row for the DQN policy) ---
+    fetch('/api/kpis?ai_policy=dqn&baseline_policy=fixed_price').then(r => r.json()).then(data => {
+        const el = document.getElementById('kpiScorecard');
+        if (data.error) { el.innerHTML = `<div class="alert alert-warning">${data.error}</div>`; return; }
+        const dqnRow = data.summary_rows.find(r => r.policy === 'dqn');
+        const uplift = data.ai_vs_baseline ? data.ai_vs_baseline.revenue_uplift_pct : null;
+        el.innerHTML = `
+            <div class="mb-4">
+                <label class="text-secondary small fw-bold mb-2 d-block">REVENUE UPLIFT</label>
+                <div class="d-flex align-items-end">
+                    <h2 class="fw-bold mb-0 ${uplift >= 0 ? 'text-success' : 'text-danger'}">${uplift !== null ? (uplift >= 0 ? '+' : '') + uplift.toFixed(1) + '%' : 'N/A'}</h2>
+                    <span class="ms-2 text-secondary mb-1">vs Fixed Price</span>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="text-secondary small fw-bold mb-2 d-block">SELL-THROUGH EFFICIENCY</label>
+                <div class="d-flex align-items-end">
+                    <h2 class="fw-bold mb-0 text-primary">${dqnRow ? dqnRow.mean_sell_through_pct.toFixed(1) : '—'}%</h2>
+                    <span class="ms-2 text-secondary mb-1">Target: 95%</span>
+                </div>
+            </div>
+            <div class="mb-0">
+                <label class="text-secondary small fw-bold mb-2 d-block">INVENTORY SPOILAGE</label>
+                <div class="d-flex align-items-end">
+                    <h2 class="fw-bold mb-0 text-warning">${dqnRow ? dqnRow.mean_spoilage_pct.toFixed(1) : '—'}%</h2>
+                    <span class="ms-2 text-secondary mb-1">Target: &lt; 5%</span>
+                </div>
+            </div>
+        `;
+    });
+
+    // --- Occupancy trend (real per-episode data) ---
+    fetch('/api/charts/occupancy_trend?policies=dqn,fixed_price')
+        .then(r => r.json())
+        .then(series => {
+            new Chart(document.getElementById('occupancyChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: series.labels,
+                    datasets: series.datasets.map(d => ({ label: d.label, data: d.data, borderColor: d.color, fill: false, tension: 0.3 }))
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
+            });
+        });
+
+    // --- Pricing action distribution (real, from mean_discount_depth_pct) ---
+    fetch('/api/charts/price_distribution?policy=dqn')
+        .then(r => r.json())
+        .then(dist => {
+            new Chart(document.getElementById('pricingDistChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: dist.labels,
+                    datasets: [{ data: dist.data, backgroundColor: ['#ef4444', '#64748b', '#2563eb'], borderWidth: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+        });
+});
+</script>
+{% endblock %}

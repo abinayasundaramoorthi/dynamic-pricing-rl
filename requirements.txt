@@ -4,3 +4,6 @@ pandas
 matplotlib
 seaborn
 torch
+scipy
+flask
+pytest

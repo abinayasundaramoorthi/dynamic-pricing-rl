@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Event Calendar & Alerts{% endblock %}
+
+{% block content %}
+<div class="row mb-4 animate-fade-in">
+    <div class="col-12">
+        <h2 class="fw-bold">Market Events & Early Warning</h2>
+        <p class="text-secondary">Scan upcoming events and detect potential demand shocks before they impact your revenue.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Event Scanner -->
+    <div class="col-lg-4 animate-fade-in" style="animation-delay: 0.1s;">
+        <div class="card glass-card mb-4">
+            <div class="card-header bg-transparent border-0 pt-4 px-4">
+                <h5 class="fw-bold mb-0">Event Scanner Settings</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">LOOKAHEAD WINDOW</label>
+                    <select class="form-select" id="lookahead">
+                        <option value="14">14 Days</option>
+                        <option value="30" selected>30 Days</option>
+                        <option value="60">60 Days</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label small fw-bold">EVENT SOURCE FILE (server path)</label>
+                    <input class="form-control" type="text" id="eventSourcePath"
+                           placeholder="additional_features/demand_shock_detection/sample_events.csv">
+                    <div class="form-text">Leave blank to use the bundled sample calendar. Path is read on the server (CSV or JSON), relative to the project root.</div>
+                </div>
+                <button class="btn btn-primary w-100 py-2" id="scanBtn">
+                    <i class="fas fa-search me-2"></i> Scan for Shocks
+                </button>
+            </div>
+        </div>
+
+        <div class="card glass-card">
+            <div class="card-body p-4">
+                <h6 class="fw-bold mb-2">Impact Legend</h6>
+                <div class="d-flex align-items-center mb-2"><span class="badge bg-danger me-2">&nbsp;</span><span class="small">High Risk (&ge;20% Demand Lift)</span></div>
+                <div class="d-flex align-items-center mb-2"><span class="badge bg-warning me-2">&nbsp;</span><span class="small">Medium Risk (8&ndash;20% Demand Lift)</span></div>
+                <div class="d-flex align-items-center"><span class="badge bg-success me-2">&nbsp;</span><span class="small">Low Risk (&lt;8% Demand Lift)</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Alerts -->
+    <div class="col-lg-8 animate-fade-in" style="animation-delay: 0.2s;">
+        <div class="card glass-card h-100">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0">Active Demand Shock Alerts</h5>
+                <span id="alertCount" class="badge bg-dark">0 Alerts</span>
+            </div>
+            <div class="card-body p-4" id="alertsContainer">
+                <div class="text-center py-5 text-secondary">
+                    <i class="fas fa-shield-alt fa-3x mb-3 opacity-25"></i>
+                    <p>Click "Scan for Shocks" to analyze upcoming events.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('scanBtn').addEventListener('click', function () {
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Scanning...';
+        showLoading('alertsContainer');
+
+        const lookahead = document.getElementById('lookahead').value;
+        const source = document.getElementById('eventSourcePath').value.trim();
+        const url = `/api/alerts?lookahead=${lookahead}` + (source ? `&source=${encodeURIComponent(source)}` : '');
+
+        fetch(url).then(r => r.json()).then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-search me-2"></i> Scan for Shocks';
+
+            const container = document.getElementById('alertsContainer');
+            const countBadge = document.getElementById('alertCount');
+
+            if (data.error) {
+                container.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                countBadge.textContent = '0 Alerts';
+                return;
+            }
+
+            const sampleNote = data.is_sample_data
+                ? `<div class="alert alert-secondary small py-2 mb-3">Scanning the bundled sample calendar (<code>${data.source}</code>) — enter your own file path above to scan real events.</div>`
+                : `<div class="alert alert-light border small py-2 mb-3">Scanning <code>${data.source}</code>.</div>`;
+
+            if (data.alerts.length === 0) {
+                container.innerHTML = sampleNote + '<div class="alert alert-success mb-0">No demand shocks detected in the selected window.</div>';
+                countBadge.textContent = '0 Alerts';
+                return;
+            }
+
+            countBadge.textContent = `${data.alerts.length} Alerts`;
+
+            const cards = data.alerts.map(alert => {
+                const riskColor = alert.risk === 'High' ? 'danger' : (alert.risk === 'Medium' ? 'warning' : 'success');
+                const liftSign = alert.expected_demand_lift_pct >= 0 ? '+' : '';
+                return `
+                    <div class="card mb-3 border-start border-4 border-${riskColor} shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="fw-bold mb-0">${alert.event}</h5>
+                                <span class="badge bg-${riskColor}">${alert.risk} Risk</span>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3"><small class="text-secondary d-block">DATE</small><strong>${alert.date}</strong></div>
+                                <div class="col-md-3"><small class="text-secondary d-block">TIMELINE</small><strong>In ${alert.days_until} days</strong></div>
+                                <div class="col-md-3"><small class="text-secondary d-block">EXPECTED DEMAND LIFT</small><strong class="text-${riskColor}">${liftSign}${alert.expected_demand_lift_pct}%</strong></div>
+                                <div class="col-md-3"><small class="text-secondary d-block">CONFIDENCE</small><strong>${Math.round(alert.confidence * 100)}%</strong></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4"><small class="text-secondary d-block">SUGGESTED OCCUPANCY TARGET</small><strong>${alert.suggested_occupancy_target_pct}%</strong></div>
+                                <div class="col-md-4"><small class="text-secondary d-block">SUGGESTED PRICE CEILING</small><strong>&#8377;${alert.suggested_pricing_ceiling.toLocaleString()}</strong></div>
+                                <div class="col-md-4"><small class="text-secondary d-block">EXPLORATION ADJUSTMENT</small><strong>-${alert.suggested_exploration_adjustment}</strong></div>
+                            </div>
+                            <p class="mb-0 text-secondary small">${alert.explanation}</p>
+                        </div>
+                    </div>`;
+            }).join('');
+
+            container.innerHTML = sampleNote + cards;
+        }).catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-search me-2"></i> Scan for Shocks';
+            console.error(err);
+        });
+    });
+});
+</script>
+{% endblock %}
