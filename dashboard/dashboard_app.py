@@ -50,80 +50,43 @@ from configs.evaluation_config import BusinessKPIConfig  # noqa: E402
 
 # --------------------------------------------------------------------------- #
 # Data contract — the exact files/columns this dashboard depends on.
-# Kept as module-level constants so `reports/dashboard_design.md`'s
-# "compatibility contract" section and this code can never silently drift
-# apart from each other.
+#
+# Sourced from `dashboard/data_contract.py` (a Streamlit-free module) so
+# every other consumer (the Flask app in `dashboard/web_dashboard/`,
+# `additional_features/advanced_dashboard/*`) can reuse the same paths,
+# required columns, and display names WITHOUT importing this module and
+# therefore Streamlit. This module still owns the Streamlit-specific
+# `@st.cache_data` wrapping (for the loading spinners) around the shared,
+# framework-agnostic loading logic.
 # --------------------------------------------------------------------------- #
-EVALUATION_RESULTS_PATH = REPO_ROOT / "evaluation" / "evaluation_results.csv"
-EVALUATION_SUMMARY_PATH = REPO_ROOT / "evaluation" / "policy_evaluation_summary.csv"
-
-REQUIRED_EPISODE_COLUMNS = {
-    "policy", "seed", "total_reward", "final_revenue", "units_sold",
-    "initial_inventory", "sell_through_pct", "spoilage_pct", "mean_price",
-    "mean_discount_depth_pct", "steps",
-}
-REQUIRED_SUMMARY_COLUMNS = {
-    "policy", "num_episodes", "mean_revenue", "std_revenue",
-    "mean_sell_through_pct", "mean_spoilage_pct", "mean_price",
-    "mean_discount_depth_pct", "revenue_uplift_pct",
-    "meets_revenue_uplift_target", "meets_sell_through_target",
-    "meets_spoilage_target",
-}
-
-POLICY_DISPLAY_NAMES = {
-    "dqn": "DQN Agent",
-    "q_learning": "Q-Learning Agent",
-    "random": "Random Policy",
-    "fixed_price": "Fixed Price Policy",
-    "time_based_discount": "Time-Based Discount Policy",
-}
+from dashboard.data_contract import (  # noqa: E402
+    DataCompatibilityError,
+    EVALUATION_RESULTS_PATH,
+    EVALUATION_SUMMARY_PATH,
+    POLICY_DISPLAY_NAMES,
+    REQUIRED_EPISODE_COLUMNS,
+    REQUIRED_SUMMARY_COLUMNS,
+    display_name,
+)
+from dashboard.data_contract import load_episode_results as _load_episode_results  # noqa: E402
+from dashboard.data_contract import load_summary_results as _load_summary_results  # noqa: E402
 
 
 # --------------------------------------------------------------------------- #
 # Data loading + compatibility verification
 # --------------------------------------------------------------------------- #
-class DataCompatibilityError(Exception):
-    """Raised when an evaluation output file exists but doesn't match the
-    schema this dashboard expects — e.g. produced by an older/incompatible
-    version of `evaluate_policies.py`. Distinguished from a plain
-    FileNotFoundError so the UI can give a different, more specific
-    message for "wrong shape of data" versus "no data yet"."""
-
-
 @st.cache_data(show_spinner="Loading evaluation results...")
 def load_episode_results(path: Path = EVALUATION_RESULTS_PATH) -> pd.DataFrame:
     """Load the episode-level results CSV, verifying it has the columns
     this dashboard's charts and tables actually read before returning it."""
-    if not path.exists():
-        raise FileNotFoundError(str(path))
-    df = pd.read_csv(path)
-    missing = REQUIRED_EPISODE_COLUMNS - set(df.columns)
-    if missing:
-        raise DataCompatibilityError(
-            f"{path} is missing expected column(s) {sorted(missing)}. "
-            "This usually means it was produced by an older version of "
-            "evaluation/evaluate_policies.py — re-run the evaluation "
-            "pipeline to regenerate it."
-        )
-    return df
+    return _load_episode_results(path)
 
 
 @st.cache_data(show_spinner="Loading policy summary...")
 def load_summary_results(path: Path = EVALUATION_SUMMARY_PATH) -> pd.DataFrame:
     """Load the per-policy aggregate summary CSV, verifying schema
     compatibility the same way `load_episode_results` does."""
-    if not path.exists():
-        raise FileNotFoundError(str(path))
-    df = pd.read_csv(path)
-    missing = REQUIRED_SUMMARY_COLUMNS - set(df.columns)
-    if missing:
-        raise DataCompatibilityError(
-            f"{path} is missing expected column(s) {sorted(missing)}. "
-            "This usually means it was produced by an older version of "
-            "evaluation/evaluate_policies.py — re-run the evaluation "
-            "pipeline to regenerate it."
-        )
-    return df
+    return _load_summary_results(path)
 
 
 def verify_cross_source_compatibility(episodes: pd.DataFrame, summary: pd.DataFrame) -> None:
@@ -195,12 +158,9 @@ def verify_cross_source_compatibility(episodes: pd.DataFrame, summary: pd.DataFr
         )
 
 
-def display_name(policy: str) -> str:
-    """Human-readable label for a policy key, falling back to the raw key
-    for any policy this dashboard doesn't have a friendly name for yet
-    (keeps the dashboard forward-compatible with a new policy being added
-    to evaluate_policies.py without a matching dashboard code change)."""
-    return POLICY_DISPLAY_NAMES.get(policy, policy)
+# `display_name` is imported from `dashboard.data_contract` above (kept as
+# the single implementation, reused by the Flask app and additional_features
+# chart/KPI modules too).
 
 
 # --------------------------------------------------------------------------- #

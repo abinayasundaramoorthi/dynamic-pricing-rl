@@ -6,8 +6,7 @@ backed by one of three REAL data sources — never a fabricated or
 hardcoded number:
 
     1. `evaluation/evaluation_results.csv` / `policy_evaluation_summary.csv`
-       (loaded via the existing, untouched
-       `dashboard.dashboard_app.load_episode_results` /
+       (loaded via `dashboard.data_contract.load_episode_results` /
        `load_summary_results`), summarized by the framework-agnostic
        `additional_features.advanced_dashboard.{kpi_components,charts}`.
     2. A live `pricing_env.PricingEnvironment` rollout driven by a real
@@ -28,11 +27,29 @@ from __future__ import annotations
 from flask import Blueprint, Response, jsonify, request
 
 from additional_features.advanced_dashboard import charts, export_utils, kpi_components
-from dashboard.dashboard_app import load_episode_results, load_summary_results
+from dashboard.data_contract import load_episode_results, load_summary_results
 from dashboard.web_dashboard import services
 from dashboard.web_dashboard.services import AgentNotFoundError
 
 api_bp = Blueprint("api", __name__)
+
+
+@api_bp.route("/health")
+def get_health():
+    """
+    Lightweight liveness/readiness check — does not touch the model,
+    the environment, or any CSV; just confirms the process is up and
+    reports whether each trained agent checkpoint is currently loaded
+    in memory (warmed at startup by `services.warm_agents()`, or on
+    first use otherwise).
+    """
+    return jsonify(
+        {
+            "status": "ok",
+            "dqn_loaded": services.is_dqn_agent_loaded(),
+            "q_learning_loaded": services.is_q_learning_agent_loaded(),
+        }
+    )
 
 
 def _policies_param() -> list[str] | None:

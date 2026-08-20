@@ -30,7 +30,7 @@ import pandas as pd
 import pytest
 
 from additional_features.advanced_dashboard import charts, export_utils, kpi_components
-from dashboard.dashboard_app import load_episode_results, load_summary_results
+from dashboard.data_contract import load_episode_results, load_summary_results
 from dashboard.web_dashboard import services
 from dashboard.web_dashboard.app import create_app
 from pricing_env import PricingEnvConfig

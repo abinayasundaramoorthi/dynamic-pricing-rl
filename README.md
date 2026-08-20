@@ -1,12 +1,20 @@
-# additional_features + dashboard/web_dashboard — Flask Edition
-
-This is an update to the previous `additional_features` delivery. Two things changed, both requested directly:
-
-1. **No more Streamlit for the new dashboard.** The Advanced Revenue Management Dashboard (Feature 2) is now a **Flask** app with Bootstrap 5 + Chart.js, built from the design you liked (`revenue-ai-production.zip`).
-2. **No duplicate top-level dashboard folder.** The Flask app lives at `dashboard/web_dashboard/`, nested inside your existing `dashboard/` folder — not a second top-level `web_dashboard/` folder next to it.
-
-Your original `dashboard/dashboard_app.py` (Streamlit) and every other core project file are **byte-for-byte untouched**. This is purely additive.
 # Dynamic Pricing with Reinforcement Learning
+
+> **Update — single Flask app, Streamlit removed.** The project now runs
+> as **one Flask application**: `python -m dashboard.web_dashboard.app`.
+> The original Streamlit dashboard (`dashboard/dashboard_app.py`) has
+> been removed — its data-loading logic lives on in
+> `dashboard/data_contract.py`. The former second Flask app
+> (`web_app/app.py`, for Human-Feedback-Learning + Digital-Twin
+> features) is now merged in as the `legacy` blueprint, mounted at
+> `/legacy` (`/legacy/human-feedback`, `/legacy/digital-twin`). The
+> bundled demand-shock event calendar
+> (`additional_features/demand_shock_detection/sample_events.csv`) now
+> contains real Indian festival/holiday dates (Republic Day, Holi,
+> Ganesh Chaturthi, Navratri, Dussehra, Diwali, Christmas & New Year)
+> instead of placeholder template rows — see
+> `dashboard/web_dashboard/OPTIMIZATION_NOTES.md` for the full history
+> of these changes.
 
 **Travel & Hospitality — Learning Optimal Pricing Policies for Perishable Inventory**
 
@@ -20,7 +28,7 @@ The project was built as a 4-week sprint, moving from problem formulation
 to a fully validated, end-to-end system: a custom Gymnasium environment,
 two learned agents (tabular Q-Learning and a Deep Q-Network), three
 heuristic baselines, a 1,000-episode statistical evaluation framework, and
-a business-facing Streamlit dashboard.
+a business-facing Flask dashboard.
 
 > **Project status:** Week 4 complete — validated end to end. One honest
 > open finding is carried forward rather than hidden: in the current
@@ -194,7 +202,9 @@ python -m dashboard.web_dashboard.app
 
 Then open **http://localhost:8080**. Override the port with the `PORT` environment variable if needed.
 
-Your original Streamlit dashboard still runs exactly as before:
+Human-Feedback-Learning and Digital-Twin-Simulation are available in the
+same app, under `/legacy` (`/legacy/human-feedback`, `/legacy/digital-twin`).
+
 Runs 1,000 simulated booking seasons for each of DQN, Q-Learning, Random,
 Fixed Price, and Time-Based Discount, scores every policy against the
 project's business KPIs (revenue uplift, sell-through, spoilage), and
@@ -202,17 +212,11 @@ writes `evaluation/evaluation_results.csv` (episode-level) plus
 `evaluation/policy_evaluation_summary.csv` / `.json` (aggregate).
 Add `--smoke-test` for a fast 20-episode pipeline check instead.
 
-### Business dashboard
-
-```bash
-python -m streamlit run dashboard/dashboard_app.py
-```
-
 ## What's real vs. what's a template
 Reads the evaluation outputs above and renders policy performance,
-pricing trends, and business-KPI scorecards. Run the evaluation command
-at least once first — the dashboard displays what's on disk, it doesn't
-simulate anything itself.
+pricing trends, and business-KPI scorecards in the Flask dashboard
+(`/dashboard`). Run the evaluation command above at least once first —
+the dashboard displays what's on disk, it doesn't simulate anything itself.
 
 ### Programmatic usage
 

@@ -65,6 +65,52 @@ class AgentNotFoundError(RuntimeError):
     """Raised when a requested agent's checkpoint file does not exist on disk."""
 
 
+def is_dqn_agent_loaded() -> bool:
+    """Cheap, no-I/O check of whether the DQN agent is currently cached
+    in memory (used by `/api/health`; never touches disk or the model)."""
+    return bool(_dqn_agent_cache)
+
+
+def is_q_learning_agent_loaded() -> bool:
+    """Cheap, no-I/O check of whether the Q-Learning agent is currently
+    cached in memory (used by `/api/health`)."""
+    return bool(_q_learning_agent_cache)
+
+
+def warm_agents() -> Dict[str, bool]:
+    """
+    Eagerly load (and cache) every agent whose checkpoint exists, once, at
+    process startup — call this from `create_app()`.
+
+    Without this, `get_dqn_agent` / `get_q_learning_agent` load lazily on
+    whichever request happens to be first. That's fine for later requests
+    (the cache makes them effectively free), but it means the FIRST real
+    `/api/recommendation` click a person makes pays the full checkpoint
+    load + (for DQN) PyTorch's one-time kernel warmup cost — the exact
+    "clicking a button takes several seconds" symptom, just moved to
+    whichever click happens to be first instead of eliminated. Doing this
+    once at startup instead means every user-facing request is fast,
+    including the first one.
+
+    Missing checkpoints are not an error here — same as any other
+    request, they're just skipped (the agent will still correctly raise
+    `AgentNotFoundError` with a clear message if requested later, e.g.
+    before the user has run training).
+
+    Returns a dict like `{"dqn": True, "q_learning": False}` recording
+    which agents were successfully warmed, for startup logging.
+    """
+    env = PricingEnvironment(PricingEnvConfig())
+    warmed: Dict[str, bool] = {}
+    for name, loader in (("dqn", get_dqn_agent), ("q_learning", get_q_learning_agent)):
+        try:
+            loader(env)
+            warmed[name] = True
+        except AgentNotFoundError:
+            warmed[name] = False
+    return warmed
+
+
 def get_dqn_agent(env: PricingEnvironment) -> DQNAgent:
     """
     Load (and cache) the real trained DQN checkpoint at the path

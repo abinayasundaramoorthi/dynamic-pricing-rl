@@ -1,31 +1,32 @@
 """
 dashboard.web_dashboard package
 
-A Flask web dashboard, nested inside the project's existing `dashboard/`
-folder alongside the original Streamlit app (`dashboard/dashboard_app.py`,
-`dashboard/pricing_visualizations.py`, etc.) — neither of which this
-package modifies.
-
-Why Flask, and why here (not a new top-level folder)
-------------------------------------------------------
-This app is intentionally placed at `dashboard/web_dashboard/` rather
-than a separate top-level `web_dashboard/` folder, so the project has
-ONE `dashboard/` home for all dashboard code instead of two
-similarly-named top-level folders. It uses Flask + server-rendered
-Jinja templates + Chart.js (not Streamlit) for the "Advanced Revenue
-Management Dashboard Enhancement" feature, per project requirements.
+The project's ONE Flask web application. Originally added alongside two
+other apps — a Streamlit dashboard (`dashboard/dashboard_app.py`) and a
+second Flask app (`web_app/app.py`) for the human-feedback and
+digital-twin features. Both have since been merged in or removed:
+Streamlit is no longer a project dependency (its data-loading logic
+lives on in `dashboard/data_contract.py`, which this package already
+used), and the human-feedback/digital-twin routes are now the `legacy`
+blueprint below, mounted at `/legacy`.
 
 Contents
 --------
-    app.py                    -- `create_app()` Flask application factory
-    services.py                -- shared business logic (agent loading/
-                                   caching, real environment rollouts,
-                                   event loading) used by the API blueprint
-    blueprints/main.py          -- HTML page routes
+    app.py                      -- `create_app()` Flask application factory
+    services.py                 -- shared business logic (agent loading/
+                                    caching, real environment rollouts,
+                                    event loading) used by the API blueprint
+    blueprints/main.py          -- RL pricing dashboard HTML page routes
     blueprints/api.py           -- JSON API routes (real data only —
-                                   every number comes from this project's
-                                   real environment, real trained agents,
-                                   or real evaluation CSVs)
+                                    every number comes from this project's
+                                    real environment, real trained agents,
+                                    or real evaluation CSVs)
+    blueprints/legacy.py        -- Human-Feedback-Learning + Digital-Twin
+                                    -Simulation routes, mounted at
+                                    `/legacy` (templates/static/data for
+                                    these live in `dashboard/web_dashboard/
+                                    legacy/`, kept separate from the main
+                                    dashboard's own `templates/`/`static/`)
     templates/                  -- Jinja2 templates (Bootstrap 5 + Chart.js)
     static/                     -- CSS/JS assets
 

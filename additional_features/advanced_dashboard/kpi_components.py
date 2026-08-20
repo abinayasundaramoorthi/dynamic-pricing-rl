@@ -9,11 +9,10 @@ the actual rendering happens client-side in the dashboard's HTML/JS
 templates (Chart.js + Bootstrap), not here.
 
 Every function reads the *exact* column contract
-`dashboard/dashboard_app.py` already defines and validates
+`dashboard/data_contract.py` already defines and validates
 (`REQUIRED_SUMMARY_COLUMNS`, `REQUIRED_EPISODE_COLUMNS`), so a
 `policy_evaluation_summary.csv` / `evaluation_results.csv` DataFrame
-that already works in the existing Streamlit dashboard works here
-unchanged.
+that already works elsewhere in the project works here unchanged.
 """
 
 from __future__ import annotations
@@ -24,16 +23,12 @@ from typing import Any, Dict, Optional
 import pandas as pd
 
 try:
-    # Reuse the existing dashboard's real display-name mapping instead of
-    # duplicating it — keeps this module and dashboard_app.py from ever
-    # silently drifting apart on how a policy key is labeled. Note:
-    # dashboard.dashboard_app itself still depends on Streamlit (it is
-    # the original, untouched Streamlit dashboard) — importing these two
-    # plain constants/functions from it does NOT make this module
-    # Streamlit-dependent; it only reuses data that module already owns.
-    from dashboard.dashboard_app import POLICY_DISPLAY_NAMES as _POLICY_DISPLAY_NAMES
-    from dashboard.dashboard_app import display_name as _existing_display_name
-except Exception:  # pragma: no cover - dashboard_app.py always exists in this repo
+    # Reuse the shared display-name mapping instead of duplicating it —
+    # keeps this module and dashboard/data_contract.py from ever
+    # silently drifting apart on how a policy key is labeled.
+    from dashboard.data_contract import POLICY_DISPLAY_NAMES as _POLICY_DISPLAY_NAMES
+    from dashboard.data_contract import display_name as _existing_display_name
+except Exception:  # pragma: no cover - data_contract.py always exists in this repo
     _existing_display_name = None
     _POLICY_DISPLAY_NAMES: Dict[str, str] = {}
 
@@ -42,7 +37,7 @@ def display_name(policy: str) -> str:
     """
     Human-readable label for a policy key.
 
-    Delegates to `dashboard.dashboard_app.display_name` when importable
+    Delegates to `dashboard.data_contract.display_name` when importable
     (the normal case in this repo) so this module never maintains a
     second, independently-drifting copy of `POLICY_DISPLAY_NAMES`.
     """
@@ -56,7 +51,7 @@ class AiVsBaselineKPIs:
     """
     Head-to-head comparison of one "AI" policy against one baseline
     policy, computed entirely from real `policy_evaluation_summary.csv`
-    rows (the same file `dashboard/dashboard_app.py` already loads via
+    rows (the same file `dashboard/data_contract.py` already loads via
     `load_summary_results()`).
 
     Attributes

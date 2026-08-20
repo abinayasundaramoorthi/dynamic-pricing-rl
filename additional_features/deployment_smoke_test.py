@@ -148,7 +148,7 @@ def check_q_learning_checkpoint() -> str:
 
 
 def check_dashboard_against_real_csvs() -> str:
-    from dashboard.dashboard_app import load_episode_results, load_summary_results
+    from dashboard.data_contract import load_episode_results, load_summary_results
 
     try:
         episodes = load_episode_results()

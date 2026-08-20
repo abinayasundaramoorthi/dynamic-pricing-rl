@@ -13,14 +13,14 @@ existing file:
         behaviour data is fabricated — this project does not track
         those signals, so the explainer simply omits them.
 
-    additional_features.advanced_dashboard        — reusable Streamlit +
-        matplotlib dashboard components (KPI cards, trend charts,
+    additional_features.advanced_dashboard        — reusable Flask +
+        Chart.js dashboard components (KPI cards, trend charts,
         baseline comparisons, recommendation timeline, CSV/JSON export)
         that read the exact same `evaluation/evaluation_results.csv`
         and `evaluation/policy_evaluation_summary.csv` contract that
-        `dashboard/dashboard_app.py` already depends on. These are
-        importable building blocks; the existing dashboard is not
-        modified or redesigned.
+        `dashboard/data_contract.py` defines. These are importable
+        building blocks consumed by `dashboard/web_dashboard/` (the
+        project's one Flask app).
 
     additional_features.demand_shock_detection     — an early-warning
         module that flags known local demand-shock events (festivals,

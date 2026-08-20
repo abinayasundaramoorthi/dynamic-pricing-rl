@@ -13,10 +13,10 @@ Two real data sources are used, deliberately matching the existing
 project exactly rather than inventing a third:
 
 1. Episode-level results (`evaluation/evaluation_results.csv`, columns
-   defined by `dashboard.dashboard_app.REQUIRED_EPISODE_COLUMNS`) and the
+   defined by `dashboard.data_contract.REQUIRED_EPISODE_COLUMNS`) and the
    per-policy summary (`evaluation/policy_evaluation_summary.csv`,
    `REQUIRED_SUMMARY_COLUMNS`) — same contract
-   `dashboard/dashboard_app.py` already loads and validates.
+   `dashboard/data_contract.py` already loads and validates.
 
 2. The project's real `pricing_env.demand_simulator.DemandSimulator` —
    used (not re-implemented) for the demand-forecast series, so the
@@ -34,8 +34,8 @@ import pandas as pd
 from pricing_env.demand_simulator import DemandSimulator
 
 try:
-    from dashboard.dashboard_app import POLICY_DISPLAY_NAMES
-except Exception:  # pragma: no cover - dashboard_app.py always exists in this repo
+    from dashboard.data_contract import POLICY_DISPLAY_NAMES
+except Exception:  # pragma: no cover - data_contract.py always exists in this repo
     POLICY_DISPLAY_NAMES: Dict[str, str] = {}
 
 # Keyed by policy KEY (not display name) so it composes directly with
